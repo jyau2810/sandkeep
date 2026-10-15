@@ -1,0 +1,18 @@
+{
+  "buildPath": "code-led",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/app.ts"
+        ],
+        "createdAt": "2026-10-15T12:21:17.632Z",
+        "reason": "Codex review: photo-thumb receives the bundled demo URL synchronously and the admitted photo URL on render; actual desktop and mobile captures show a valid image."
+      }
+    ]
+  }
+}

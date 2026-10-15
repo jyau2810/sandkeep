@@ -1,0 +1,847 @@
+import * as THREE from 'three';
+import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import studioUrl from './assets/studio-small-09.hdr?url';
+import type { AppIssue, BottleDraft, Presentation, SceneResult } from './domain';
+
+export interface BottleScene {
+  show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
+  assemble(signal?: AbortSignal): Promise<SceneResult>;
+  turnBy(radians: number): void;
+  dispose(): void;
+}
+
+type Options = { reducedMotion: boolean; onFault(issue: AppIssue): void };
+type GrainField = {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+  frame: ImageData;
+  pixels: Uint32Array;
+  background: Uint32Array;
+  positions: Float32Array;
+  home: Float32Array;
+  velocity: Float32Array;
+  colors: Uint32Array;
+  highlights: Uint32Array;
+  sizes: Uint8Array;
+  count: number;
+};
+type Content = {
+  draft: BottleDraft;
+  grains: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
+  field: GrainField;
+  loose: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  mantle: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
+  cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  source: HTMLCanvasElement;
+  flat: Float32Array;
+  target: Float32Array;
+  count: number;
+  group: THREE.Group;
+};
+type Assembly = {
+  started: number;
+  promise: Promise<SceneResult>;
+  resolve: (result: SceneResult) => void;
+  timeout: ReturnType<typeof setTimeout>;
+  signal?: AbortSignal;
+  abort: () => void;
+};
+type Gesture = { id: number; x: number; y: number; lastX: number; horizontal: boolean };
+
+const radius = 0.91;
+const bottom = -1.49;
+const bandHeight = Math.PI * radius;
+const top = bottom + bandHeight;
+const flyingCount = 2500;
+const duration = 2600;
+
+function randomAt(seed: number): number {
+  const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function makeCanvas(width: number, height: number): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function corkTexture(): THREE.CanvasTexture {
+  const canvas = makeCanvas(128, 128);
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#bd9567';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 1800; i++) {
+    const x = randomAt(i + 7) * 128;
+    const y = randomAt(i + 93) * 128;
+    const w = 0.5 + randomAt(i + 71) * 2.6;
+    const light = randomAt(i + 3) > 0.49;
+    ctx.fillStyle = light ? `rgba(247,224,180,${0.05 + randomAt(i) * 0.21})` : `rgba(65,39,20,${0.06 + randomAt(i) * 0.22})`;
+    ctx.fillRect(x, y, w * 1.7, w * 0.7);
+  }
+  for (let i = 0; i < 160; i++) {
+    const x = randomAt(i + 73) * 128;
+    const y = randomAt(i + 911) * 128;
+    const w = 0.7 + Math.pow(randomAt(i + 103), 3) * 9;
+    const h = 0.4 + randomAt(i + 51) * 2.5;
+    ctx.fillStyle = 'rgba(60,34,16,.43)';
+    ctx.beginPath();
+    ctx.ellipse(x, y, w, h, randomAt(i) * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(250,219,171,.3)';
+    ctx.fillRect(x - w, y + h, w * 1.5, 0.6);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function photoCanvas(image: CanvasImageSource, width: number, height: number, seam = 0): HTMLCanvasElement {
+  const canvas = makeCanvas(width, height);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  ctx.fillStyle = '#bda17a';
+  ctx.fillRect(0, 0, width, height);
+  const source = image as HTMLImageElement | HTMLCanvasElement;
+  const w = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+  const h = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
+  const scale = Math.min(width * (1 - seam) / w, height / h);
+  ctx.drawImage(image, (width - w * scale) / 2, (height - h * scale) / 2, w * scale, h * scale);
+  return canvas;
+}
+
+function grainField(source: CanvasImageSource, width: number, height: number, draft: BottleDraft, seam = 0): GrainField {
+  const canvas = photoCanvas(source, width, height, seam);
+  const context = canvas.getContext('2d', { willReadFrequently: true })!;
+  const data = context.getImageData(0, 0, width, height).data;
+  const capacity = Math.ceil(width / 1.9) * Math.ceil(height / 1.9);
+  const positions = new Float32Array(capacity * 2);
+  const colors = new Uint32Array(capacity);
+  const highlights = new Uint32Array(capacity);
+  const sizes = new Uint8Array(capacity);
+  const rgba = (r: number, g: number, b: number) => (255 << 24) | (b << 16) | (g << 8) | r;
+  const clamp = (value: number) => Math.max(0, Math.min(255, value)) | 0;
+  let seed = 907;
+  const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  let count = 0;
+  for (let y = 1; y < height - 2; y += 1.9) for (let x = 1; x < width - 2; x += 1.9) {
+    const px = x + (rand() - 0.5) * 1.7;
+    const py = y + (rand() - 0.5) * 1.7;
+    const index = ((py | 0) * width + (px | 0)) * 4;
+    const alpha = data[index + 3] / 255;
+    let r = data[index] * alpha + 48 * (1 - alpha);
+    let g = data[index + 1] * alpha + 40 * (1 - alpha);
+    let b = data[index + 2] * alpha + 33 * (1 - alpha);
+    const shade = 0.82 + rand() * 0.32;
+    if (draft.colorMode === 'warm') {
+      const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
+      const t = Math.max(0, Math.min(1, (lum - 0.08) * 1.16));
+      r = 49 + 196 * t;
+      g = 31 + 161 * t;
+      b = 19 + 111 * t;
+    }
+    r = clamp(r * shade); g = clamp(g * shade); b = clamp(b * shade);
+    positions[count * 2] = px;
+    positions[count * 2 + 1] = py;
+    colors[count] = rgba(r, g, b);
+    highlights[count] = rgba(clamp(r + 19), clamp(g + (draft.colorMode === 'warm' ? 17 : 18)), clamp(b + (draft.colorMode === 'warm' ? 13 : 15)));
+    sizes[count] = rand() < 0.85 ? 2 : 1;
+    rand();
+    count++;
+  }
+  const frame = context.createImageData(width, height);
+  const pixels = new Uint32Array(frame.data.buffer);
+  const background = new Uint32Array(width * height);
+  seed = 412;
+  for (let i = 0; i < background.length; i++) {
+    const d = (rand() * 12) | 0;
+    background[i] = rgba(40 + d, 34 + d, 29 + d);
+  }
+  const field = { canvas, context, frame, pixels, background, positions: positions.slice(0, count * 2), home: positions.slice(0, count * 2), velocity: new Float32Array(count * 2), colors, highlights, sizes, count };
+  paintField(field);
+  return field;
+}
+
+function paintField(field: GrainField): void {
+  const { pixels, background, positions, colors, highlights, sizes, canvas, count } = field;
+  const { width, height } = canvas;
+  pixels.set(background);
+  for (let i = 0; i < count; i++) {
+    const x = positions[i * 2] | 0;
+    const y = positions[i * 2 + 1] | 0;
+    if (x < 1 || x >= width - 2 || y < 1 || y >= height - 2) continue;
+    const q = y * width + x;
+    pixels[q] = highlights[i];
+    if (sizes[i] === 2) {
+      pixels[q + 1] = colors[i];
+      pixels[q + width] = colors[i];
+      pixels[q + width + 1] = colors[i];
+    }
+  }
+  field.context.putImageData(field.frame, 0, 0);
+}
+
+function fieldTexture(field: GrainField): THREE.CanvasTexture {
+  const texture = new THREE.CanvasTexture(field.canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  return texture;
+}
+
+function grainMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { pointScale: { value: 750 } },
+    vertexColors: true, depthWrite: true, transparent: false, toneMapped: false,
+    vertexShader: `
+      uniform float pointScale;
+      attribute float grainSize;
+      varying vec3 mineralColor;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        mineralColor = color;
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = clamp(grainSize * pointScale / -mv.z, 1.0, 4.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 mineralColor;
+      void main() {
+        float topLeft = step(gl_PointCoord.x, 0.5) * step(gl_PointCoord.y, 0.5);
+        gl_FragColor = vec4(mineralColor + topLeft * vec3(0.045), 1.0);
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+}
+
+function clearGlass(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { studio: { value: null }, hasStudio: { value: 0 } },
+    transparent: true, depthWrite: false, side: THREE.FrontSide,
+    vertexShader: `
+      varying vec3 worldPosition;
+      varying vec3 worldNormal;
+      void main() {
+        vec4 point = modelMatrix * vec4(position, 1.0);
+        worldPosition = point.xyz;
+        worldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * viewMatrix * point;
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D studio;
+      uniform float hasStudio;
+      varying vec3 worldPosition;
+      varying vec3 worldNormal;
+      void main() {
+        vec3 normal = normalize(worldNormal);
+        vec3 eye = normalize(cameraPosition - worldPosition);
+        float facing = clamp(dot(normal, eye), 0.0, 1.0);
+        float fresnel = pow(1.0 - facing, 3.2);
+        float curve = pow(1.0 - facing, 1.6);
+        vec3 reflected = reflect(-eye, normal);
+        vec2 uv = vec2(atan(reflected.z, reflected.x) * 0.159154943 + 0.5, asin(clamp(reflected.y, -1.0, 1.0)) * 0.318309886 + 0.5);
+        vec3 environment = texture2D(studio, uv).rgb * hasStudio;
+        float light = dot(environment, vec3(0.2126, 0.7152, 0.0722));
+        vec3 edgeTint = vec3(0.12, 0.19, 0.16);
+        vec3 reflection = mix(edgeTint, environment, 0.67);
+        float pane = (1.0 - smoothstep(0.015, 0.08, abs(normal.x + 0.63))) * smoothstep(0.1, 0.3, normal.z);
+        reflection = mix(reflection, vec3(1.45, 1.46, 1.4), pane * 0.9);
+        float brightReflection = smoothstep(0.7, 3.0, light) * 0.22;
+        float alpha = 0.012 + curve * 0.2 + fresnel * 0.5 + brightReflection * (0.23 + fresnel * 0.7) + pane * 0.28;
+        gl_FragColor = vec4(reflection, clamp(alpha, 0.0, 0.8));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }
+    `,
+  });
+}
+
+function issue(code: AppIssue['code'], message: string): Error & { code: AppIssue['code'] } {
+  return Object.assign(new Error(message), { code });
+}
+
+export function createBottleScene(host: HTMLElement, options: Options): BottleScene {
+  let renderer: THREE.WebGLRenderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+  } catch {
+    const fault: AppIssue = { code: 'webgl-unavailable', message: '这个浏览器暂时无法显示瓶子，请开启硬件加速，或换用新版浏览器。' };
+    options.onFault(fault);
+    throw issue(fault.code, fault.message);
+  }
+  const canvas = renderer.domElement;
+  canvas.className = 'bottle-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  canvas.style.cssText = 'width:100%;height:100%;display:block;touch-action:pan-y';
+  renderer.setClearColor(0xece6da, 1);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  host.append(canvas);
+
+  const resources = new Set<{ dispose(): void }>();
+  const retain = <T extends { dispose(): void }>(resource: T): T => { resources.add(resource); return resource; };
+  const world = new THREE.Scene();
+  world.background = new THREE.Color(0xece6da);
+  void new HDRLoader().loadAsync(studioUrl).then(hdr => {
+    if (disposed) { hdr.dispose(); return; }
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const environment = retain(pmrem.fromEquirectangular(hdr));
+    retain(hdr);
+    glassMaterial.uniforms.studio.value = hdr;
+    glassMaterial.uniforms.hasStudio.value = 1;
+    rimMaterial.uniforms.studio.value = hdr;
+    rimMaterial.uniforms.hasStudio.value = 1;
+    pmrem.dispose();
+    world.environment = environment.texture;
+    world.environmentIntensity = 0.5;
+    requestFrame();
+  }).catch(() => undefined);
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40);
+  camera.position.set(0, 1.2, 9.4);
+  camera.lookAt(0, 0.32, 0);
+  world.add(new THREE.HemisphereLight(0xfff6e6, 0x8c7860, 1.6));
+  const key = new THREE.DirectionalLight(0xfff4e2, 2.6);
+  key.position.set(-3.5, 6, 5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.camera.left = -3.5;
+  key.shadow.camera.right = 3.5;
+  key.shadow.camera.top = 4;
+  key.shadow.camera.bottom = -3;
+  key.shadow.bias = -0.0005;
+  key.shadow.normalBias = 0.02;
+  key.shadow.radius = 5;
+  world.add(key);
+  const fillLight = new THREE.DirectionalLight(0xe1ecff, 1.2);
+  fillLight.position.set(4, 3, -3);
+  world.add(fillLight);
+
+  const bottle = new THREE.Group();
+  world.add(bottle);
+  const vessel = new THREE.Group();
+  bottle.add(vessel);
+  const outer = [
+    [0, -1.69], [0.70, -1.69], [0.91, -1.67], [1.005, -1.59], [1.035, -1.47],
+    [1.038, -1.35], [1.038, 1.20], [1.025, 1.38], [0.973, 1.53], [0.85, 1.67],
+    [0.68, 1.82], [0.52, 1.94], [0.475, 2.04], [0.475, 2.16], [0.495, 2.18],
+    [0.499, 2.22], [0.48, 2.25], [0.438, 2.25], [0.422, 2.22], [0.426, 2.17],
+    [0.43, 2.05], [0.468, 1.98], [0.63, 1.84], [0.81, 1.68], [0.93, 1.52],
+    [0.965, 1.35], [0.971, 1.20], [0.971, -1.31], [0.96, -1.43], [0.9, -1.51], [0.70, -1.54], [0, -1.54],
+  ];
+  const profileCurve = new THREE.CatmullRomCurve3(outer.map(([x, y]) => new THREE.Vector3(x, y, 0)), false, 'centripetal');
+  const profile = profileCurve.getPoints(320).map(point => new THREE.Vector2(Math.max(0, point.x), point.y));
+  const glassMaterial = retain(clearGlass());
+  const glass = new THREE.Mesh(retain(new THREE.LatheGeometry(profile, 160)), glassMaterial);
+  glass.renderOrder = 3;
+  vessel.add(glass);
+  const rimMaterial = retain(glassMaterial.clone());
+  for (const [r, y, thickness] of [[0.466, 2.215, 0.033], [0.994, -1.59, 0.034], [0.473, 2.105, 0.012]]) {
+    const rim = new THREE.Mesh(retain(new THREE.TorusGeometry(r, thickness, 12, 128)), rimMaterial);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = y;
+    rim.renderOrder = 4;
+    vessel.add(rim);
+  }
+  const cork = retain(corkTexture());
+  const corkMaterial = retain(new THREE.MeshStandardMaterial({
+    map: cork, bumpMap: cork, bumpScale: 0.028, roughness: 0.96,
+    color: 0xffffff, envMapIntensity: 0.18,
+  }));
+  const corkMesh = new THREE.Mesh(retain(new THREE.CylinderGeometry(0.439, 0.42, 0.45, 96, 8)), corkMaterial);
+  corkMesh.position.y = 2.38;
+  corkMesh.castShadow = true;
+  vessel.add(corkMesh);
+  const corkBevel = new THREE.Mesh(retain(new THREE.TorusGeometry(0.422, 0.018, 8, 96)), corkMaterial);
+  corkBevel.rotation.x = Math.PI / 2;
+  corkBevel.position.y = 2.595;
+  vessel.add(corkBevel);
+
+  const coreMaterial = retain(new THREE.MeshBasicMaterial({ color: 0x302922, toneMapped: false }));
+  const core = new THREE.Mesh(retain(new THREE.CylinderGeometry(radius - 0.015, radius - 0.015, bandHeight, 128, 1)), coreMaterial);
+  core.position.y = (bottom + top) / 2;
+  bottle.add(core);
+  const plinth = new THREE.Mesh(retain(new THREE.CylinderGeometry(1.4, 1.46, 0.12, 128)), retain(new THREE.MeshStandardMaterial({
+    color: 0xcabc9f, roughness: 0.82, envMapIntensity: 0.24,
+  })));
+  plinth.position.y = -1.77;
+  plinth.receiveShadow = true;
+  world.add(plinth);
+  const shadowCanvas = makeCanvas(256, 256);
+  const shadowContext = shadowCanvas.getContext('2d')!;
+  const shadowGradient = shadowContext.createRadialGradient(128, 128, 13, 128, 128, 128);
+  shadowGradient.addColorStop(0, 'rgba(60,43,23,.38)');
+  shadowGradient.addColorStop(0.35, 'rgba(60,43,23,.19)');
+  shadowGradient.addColorStop(1, 'rgba(60,43,23,0)');
+  shadowContext.fillStyle = shadowGradient;
+  shadowContext.fillRect(0, 0, 256, 256);
+  const shadow = new THREE.Mesh(retain(new THREE.PlaneGeometry(4.9, 3.7)), retain(new THREE.MeshBasicMaterial({
+    map: retain(new THREE.CanvasTexture(shadowCanvas)), transparent: true, depthWrite: false, toneMapped: false,
+  })));
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0.24, -1.835, 0.05);
+  world.add(shadow);
+
+  let content: Content | null = null;
+  let mode: Presentation = 'loose';
+  let assembly: Assembly | null = null;
+  let disposed = false;
+  let contextLost = false;
+  let generation = 0;
+  let frame = 0;
+  let previousTime = 0;
+  let yawVelocity = 0;
+  let gesture: Gesture | null = null;
+  let looseEnergy = 0;
+  let impulse = 0;
+  let pointerDX = 0;
+  let pointerDY = 0;
+  let width = 1;
+  let height = 1;
+  const pointer = new THREE.Vector3(100, 100, 0);
+  const previousPointer = new THREE.Vector3(100, 100, 0);
+  const raycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+  const pointerPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1.5);
+  const pendingDecodes = new Set<() => void>();
+
+  function requestFrame(): void {
+    if (!frame && !disposed && !contextLost && !document.hidden) frame = requestAnimationFrame(draw);
+  }
+
+  function placeCamera(assemblyProgress?: number): void {
+    const sealedDistance = Math.max(9.4, 8.5 / camera.aspect);
+    const looseDistance = Math.max(9.4, 1.5 + 11.03 / camera.aspect);
+    const blend = assemblyProgress === undefined ? (mode === 'sealed' ? 1 : 0) : assemblyProgress * assemblyProgress * (3 - 2 * assemblyProgress);
+    const distance = looseDistance * (1 - blend) + sealedDistance * blend;
+    camera.position.set(0, 0.32 + distance * 0.094, distance);
+    camera.lookAt(0, 0.32, 0);
+    camera.updateProjectionMatrix();
+  }
+
+  function resize(): void {
+    if (disposed) return;
+    const rect = host.getBoundingClientRect();
+    width = Math.max(1, rect.width);
+    height = Math.max(1, rect.height);
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    placeCamera();
+    if (content) {
+      content.grains.material.uniforms.pointScale.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+      const fieldWidth = Math.min(720, Math.max(240, Math.round(Math.min(width * 0.9, height * 1.36) * 1.2)));
+      if (Math.abs(content.field.canvas.width - fieldWidth) > 8) {
+        const replacement = grainField(content.source, fieldWidth, Math.round(fieldWidth * 0.6), content.draft);
+        content.loose.material.map!.dispose();
+        content.loose.material.map = fieldTexture(replacement);
+        content.loose.material.needsUpdate = true;
+        content.field.canvas.width = content.field.canvas.height = 0;
+        content.field = replacement;
+        looseEnergy = 0;
+      }
+    }
+    requestFrame();
+  }
+
+  function releaseContent(value: Content): void {
+    bottle.remove(value.group);
+    value.grains.geometry.dispose();
+    value.grains.material.dispose();
+    for (const mesh of [value.loose, value.mantle, value.cap]) {
+      mesh.geometry.dispose();
+      mesh.material.map?.dispose();
+      mesh.material.dispose();
+    }
+    value.field.canvas.width = value.field.canvas.height = 0;
+    value.source.width = value.source.height = 0;
+  }
+
+  function resetLoose(): void {
+    if (!content) return;
+    content.field.positions.set(content.field.home);
+    content.field.velocity.fill(0);
+    paintField(content.field);
+    content.loose.material.map!.needsUpdate = true;
+    looseEnergy = 0;
+    impulse = 0;
+    bottle.rotation.y = 0;
+  }
+
+  function applyPresentation(next: Presentation): void {
+    mode = next;
+    canvas.style.cursor = next === 'sealed' ? 'grab' : 'crosshair';
+    vessel.visible = core.visible = plinth.visible = shadow.visible = next === 'sealed';
+    if (!content) return;
+    content.grains.visible = false;
+    content.loose.visible = next === 'loose';
+    content.mantle.visible = content.cap.visible = next === 'sealed';
+    if (next === 'sealed') {
+      core.scale.y = content.mantle.scale.y = 1;
+      core.position.y = content.mantle.position.y = (bottom + top) / 2;
+      content.cap.position.y = top;
+    } else resetLoose();
+    resize();
+  }
+
+  function finishAssembly(result: SceneResult): void {
+    const active = assembly;
+    if (!active) return;
+    assembly = null;
+    clearTimeout(active.timeout);
+    active.signal?.removeEventListener('abort', active.abort);
+    applyPresentation(result === 'completed' ? 'sealed' : 'loose');
+    active.resolve(result);
+  }
+
+  function animateAssembly(now: number): void {
+    if (!content || !assembly) return;
+    const progress = Math.min(1, (now - assembly.started) / duration);
+    if (progress >= 1) { finishAssembly('completed'); return; }
+    placeCamera(progress);
+    content.loose.visible = progress < 0.14;
+    content.grains.visible = progress >= 0.08 && progress < 0.97;
+    vessel.visible = plinth.visible = shadow.visible = progress > 0.12;
+    core.visible = content.mantle.visible = content.cap.visible = progress > 0.3;
+    const fill = Math.max(0.001, Math.min(1, (progress - 0.28) / 0.67));
+    core.scale.y = content.mantle.scale.y = fill;
+    core.position.y = content.mantle.position.y = bottom + bandHeight * fill / 2;
+    content.cap.position.y = bottom + bandHeight * fill;
+    const positions = content.grains.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const values = positions.array as Float32Array;
+    for (let i = 0; i < content.count; i++) {
+      const k = i * 3;
+      const seed = randomAt(i + 411);
+      const level = (content.target[k + 1] - bottom) / bandHeight;
+      const t = Math.min(1, Math.max(0, (progress - level * 0.22) / 0.78));
+      const e = t * t * (3 - 2 * t);
+      const arc = Math.sin(t * Math.PI);
+      const swirl = arc * (1 - t);
+      values[k] = content.flat[k] * (1 - e) + content.target[k] * e + Math.sin(t * 9 + seed * Math.PI * 2) * swirl * 0.9;
+      values[k + 1] = content.flat[k + 1] * (1 - e) + content.target[k + 1] * e + arc * (1.6 + seed * 0.35);
+      values[k + 2] = content.flat[k + 2] * (1 - e) + content.target[k + 2] * e + Math.cos(t * 9 + seed * Math.PI * 2) * swirl * 0.9;
+    }
+    positions.needsUpdate = true;
+  }
+
+  function animateLoose(dt: number): void {
+    if (!content) return;
+    const field = content.field;
+    const { width: fw, height: fh } = field.canvas;
+    const px = (pointer.x / 5.7 + 0.5) * fw;
+    const py = (0.5 - (pointer.y - 0.28) / 3.42) * fh;
+    const step = Math.min(2, dt * 60);
+    const influence = fw * 0.13;
+    let energy = 0;
+    for (let i = 0; i < field.count; i++) {
+      const k = i * 2;
+      const dx = field.positions[k] - px;
+      const dy = field.positions[k + 1] - py;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (impulse && distance < influence && distance > 0.01) {
+        const force = (1 - distance / influence) * impulse * 32;
+        field.velocity[k] += (dx * 0.55 + dy * 1.3) / distance * force + pointerDX * force * 0.15;
+        field.velocity[k + 1] += (dy * 0.55 - dx * 1.3) / distance * force - pointerDY * force * 0.15;
+      }
+      for (let axis = 0; axis < 2; axis++) {
+        const p = k + axis;
+        field.velocity[p] = (field.velocity[p] + (field.home[p] - field.positions[p]) * 0.0015 * step) * Math.pow(0.86, step);
+        field.positions[p] += field.velocity[p] * step;
+        energy += Math.abs(field.velocity[p]);
+      }
+    }
+    impulse = 0;
+    looseEnergy = energy / field.count;
+    paintField(field);
+    content.loose.material.map!.needsUpdate = true;
+    if (looseEnergy < 0.0001) resetLoose();
+  }
+
+  function draw(now: number): void {
+    frame = 0;
+    if (disposed || contextLost) return;
+    const dt = previousTime ? Math.min(0.05, (now - previousTime) / 1000) : 1 / 60;
+    previousTime = now;
+    if (assembly) animateAssembly(now);
+    else if (mode === 'loose' && (looseEnergy || impulse)) animateLoose(dt);
+    if (!gesture && Math.abs(yawVelocity) > 0.00005) {
+      bottle.rotation.y += yawVelocity * dt * 60;
+      yawVelocity *= Math.pow(0.9, dt * 60);
+    } else if (!gesture) yawVelocity = 0;
+    try { renderer.render(world, camera); }
+    catch {
+      contextLost = true;
+      finishAssembly('cancelled');
+      options.onFault({ code: 'render-failed', message: '瓶子显示中断了，刷新页面后再试试。' });
+      return;
+    }
+    if (assembly || impulse || looseEnergy > 0.0001 || Math.abs(yawVelocity) > 0.00005) requestFrame();
+  }
+
+  function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      let settled = false;
+      const cleanup = () => {
+        image.onload = image.onerror = null;
+        signal?.removeEventListener('abort', cancel);
+        pendingDecodes.delete(cancel);
+      };
+      const cancel = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        image.src = '';
+        resolve(null);
+      };
+      pendingDecodes.add(cancel);
+      signal?.addEventListener('abort', cancel, { once: true });
+      image.onload = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(image);
+      };
+      image.onerror = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(issue('decode-failed', '这张照片没有打开，换一张 JPG、PNG 或 WebP 试试。'));
+      };
+      if (signal?.aborted || disposed) cancel();
+      else image.src = source;
+    });
+  }
+
+  function prepare(image: HTMLImageElement, draft: BottleDraft): Content {
+    const source = makeCanvas(image.naturalWidth, image.naturalHeight);
+    source.getContext('2d')!.drawImage(image, 0, 0);
+    const projectedWidth = Math.min(width * 0.9, height * 1.36);
+    const fieldWidth = Math.min(720, Math.max(240, Math.round(projectedWidth * 1.2)));
+    const field = grainField(source, fieldWidth, Math.round(fieldWidth * 0.6), draft);
+    const loose = new THREE.Mesh(new THREE.PlaneGeometry(5.7, 3.42), new THREE.MeshBasicMaterial({
+      map: fieldTexture(field), toneMapped: false,
+    }));
+    loose.position.set(0, 0.28, 1.5);
+    const mantleField = grainField(source, 512, 256, draft, draft.seamWidth);
+    const mantle = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, bandHeight, 160, 1, true), new THREE.MeshBasicMaterial({
+      map: fieldTexture(mantleField), toneMapped: false,
+    }));
+    mantle.position.y = (bottom + top) / 2;
+    mantle.rotation.y = Math.PI;
+    const capSource = makeCanvas(128, 128);
+    const capCtx = capSource.getContext('2d')!;
+    capCtx.fillStyle = '#c2a479'; capCtx.fillRect(0, 0, 128, 128);
+    const capField = grainField(capSource, 128, 128, draft);
+    capSource.width = capSource.height = 0;
+    const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 96), new THREE.MeshBasicMaterial({ map: fieldTexture(capField), toneMapped: false }));
+    cap.rotation.x = -Math.PI / 2;
+    cap.position.y = top;
+    const flat = new Float32Array(flyingCount * 3);
+    const target = new Float32Array(flyingCount * 3);
+    const colors = new Float32Array(flyingCount * 3);
+    const sizes = new Float32Array(flyingCount);
+    const color = new THREE.Color();
+    for (let n = 0; n < flyingCount; n++) {
+      const sample = Math.min(field.count - 1, Math.floor(n / flyingCount * field.count));
+      const x = field.home[sample * 2];
+      const y = field.home[sample * 2 + 1];
+      const u = x / field.canvas.width;
+      const v = 1 - y / field.canvas.height;
+      const k = n * 3;
+      const angle = u * Math.PI * 2 - Math.PI;
+      target[k] = Math.sin(angle) * radius;
+      target[k + 1] = bottom + v * bandHeight;
+      target[k + 2] = Math.cos(angle) * radius;
+      flat[k] = (u - 0.5) * 5.7;
+      flat[k + 1] = (v - 0.5) * 3.42 + 0.28;
+      flat[k + 2] = 1.5;
+      const pixel = field.colors[sample];
+      color.setRGB((pixel & 255) / 255, ((pixel >>> 8) & 255) / 255, ((pixel >>> 16) & 255) / 255, THREE.SRGBColorSpace);
+      colors[k] = color.r; colors[k + 1] = color.g; colors[k + 2] = color.b;
+      sizes[n] = 0.018 + randomAt(n) * 0.007;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(flat.slice(), 3).setUsage(THREE.DynamicDrawUsage));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.setAttribute('grainSize', new THREE.BufferAttribute(sizes, 1));
+    const grains = new THREE.Points(geometry, grainMaterial());
+    grains.frustumCulled = false;
+    const group = new THREE.Group();
+    group.add(grains, loose, mantle, cap);
+    return { draft, grains, field, loose, mantle, cap, source, flat, target, count: flyingCount, group };
+  }
+
+  async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
+    const operation = ++generation;
+    for (const cancel of [...pendingDecodes]) cancel();
+    finishAssembly('cancelled');
+    if (disposed || contextLost || signal?.aborted) return 'cancelled';
+    if (content && content.draft.imageDataUrl === draft.imageDataUrl && content.draft.colorMode === draft.colorMode && content.draft.seamWidth === draft.seamWidth) {
+      content.draft = draft;
+      applyPresentation(next);
+      return 'completed';
+    }
+    const image = await loadImage(draft.imageDataUrl, signal);
+    if (!image || operation !== generation || disposed || signal?.aborted || contextLost) return 'cancelled';
+    let prepared: Content;
+    try { prepared = prepare(image, draft); }
+    catch { throw issue('render-failed', '照片暂时没能变成彩砂，换一张小一点的照片试试。'); }
+    image.src = '';
+    if (operation !== generation || disposed || signal?.aborted || contextLost) {
+      releaseContent(prepared);
+      return 'cancelled';
+    }
+    const previous = content;
+    content = prepared;
+    bottle.add(prepared.group);
+    if (!previous || previous.draft.imageDataUrl !== draft.imageDataUrl) bottle.rotation.y = 0;
+    if (previous) releaseContent(previous);
+    yawVelocity = 0;
+    applyPresentation(next);
+    resize();
+    return 'completed';
+  }
+
+  function assemble(signal?: AbortSignal): Promise<SceneResult> {
+    if (disposed || contextLost) return Promise.resolve('cancelled');
+    if (assembly) return assembly.promise;
+    if (signal?.aborted) return Promise.resolve('cancelled');
+    if (!content) return Promise.reject(new Error('请先选择一张照片。'));
+    if (mode === 'sealed') return Promise.resolve('completed');
+    if (options.reducedMotion || document.hidden) {
+      applyPresentation('sealed');
+      return Promise.resolve('completed');
+    }
+    let resolve!: (result: SceneResult) => void;
+    const promise = new Promise<SceneResult>((done) => { resolve = done; });
+    const abort = () => finishAssembly('cancelled');
+    const timeout = setTimeout(() => finishAssembly('completed'), duration);
+    assembly = { started: performance.now(), promise, resolve, timeout, signal, abort };
+    signal?.addEventListener('abort', abort, { once: true });
+    bottle.rotation.y = 0;
+    requestFrame();
+    return promise;
+  }
+
+  function onPointerDown(event: PointerEvent): void {
+    if (assembly || !content) return;
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, horizontal: event.pointerType === 'mouse' };
+    yawVelocity = 0;
+    if (event.pointerType === 'mouse') canvas.setPointerCapture(event.pointerId);
+    canvas.style.cursor = mode === 'sealed' ? 'grabbing' : 'crosshair';
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    if (!content || assembly) return;
+    if (mode === 'loose' && !options.reducedMotion && gesture) {
+      const rect = canvas.getBoundingClientRect();
+      pointerNdc.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
+      raycaster.setFromCamera(pointerNdc, camera);
+      previousPointer.copy(pointer);
+      if (raycaster.ray.intersectPlane(pointerPlane, pointer)) {
+        bottle.worldToLocal(pointer);
+        pointerDX = THREE.MathUtils.clamp((pointer.x - previousPointer.x) * 12, -2, 2);
+        pointerDY = THREE.MathUtils.clamp((pointer.y - previousPointer.y) * 12, -2, 2);
+        impulse = Math.min(0.11, impulse + 0.055);
+        looseEnergy = 1;
+        requestFrame();
+      }
+    }
+    if (!gesture || event.pointerId !== gesture.id || mode !== 'sealed') return;
+    const dx = event.clientX - gesture.x;
+    const dy = event.clientY - gesture.y;
+    if (!gesture.horizontal) {
+      if (Math.abs(dy) > Math.abs(dx) + 6) { gesture = null; return; }
+      if (Math.abs(dx) < 7) return;
+      gesture.horizontal = true;
+      canvas.setPointerCapture(event.pointerId);
+    }
+    const delta = (event.clientX - gesture.lastX) / Math.max(250, width) * Math.PI * 2;
+    bottle.rotation.y += delta;
+    yawVelocity = options.reducedMotion ? 0 : delta * 0.65;
+    gesture.lastX = event.clientX;
+    requestFrame();
+  }
+
+  function onPointerUp(event: PointerEvent): void {
+    if (!gesture || gesture.id !== event.pointerId) return;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    gesture = null;
+    canvas.style.cursor = mode === 'sealed' ? 'grab' : 'crosshair';
+    requestFrame();
+  }
+
+  function onVisibility(): void {
+    if (document.hidden) {
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      if (assembly) finishAssembly('completed');
+    } else {
+      previousTime = 0;
+      requestFrame();
+    }
+  }
+
+  function onContextLost(event: Event): void {
+    event.preventDefault();
+    contextLost = true;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    for (const cancel of [...pendingDecodes]) cancel();
+    finishAssembly('cancelled');
+    options.onFault({ code: 'context-lost', message: '浏览器暂停了瓶子的显示，刷新页面就能重新打开。' });
+  }
+
+  const observer = new ResizeObserver(resize);
+  observer.observe(host);
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('webglcontextlost', onContextLost);
+  document.addEventListener('visibilitychange', onVisibility);
+  vessel.visible = core.visible = plinth.visible = shadow.visible = false;
+  resize();
+
+  return {
+    show,
+    assemble,
+    turnBy(radians: number): void {
+      if (disposed || contextLost || !Number.isFinite(radians)) return;
+      bottle.rotation.y += radians;
+      yawVelocity = 0;
+      requestFrame();
+    },
+    dispose(): void {
+      if (disposed) return;
+      disposed = true;
+      generation++;
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      finishAssembly('cancelled');
+      for (const cancel of [...pendingDecodes]) cancel();
+      observer.disconnect();
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (content) releaseContent(content);
+      content = null;
+      for (const resource of resources) resource.dispose();
+      resources.clear();
+      world.clear();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      canvas.remove();
+      shadowCanvas.width = shadowCanvas.height = 0;
+    },
+  };
+}

@@ -1,0 +1,434 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-15T12:43:42.688690+00:00",
+  "title": "Design System: 砂藏 / Sandkeep",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm paper",
+        "tonalRamp": [
+          "oklch(15% 0.0098 87.47)",
+          "oklch(26% 0.0098 87.47)",
+          "oklch(38% 0.0098 87.47)",
+          "oklch(49% 0.0098 87.47)",
+          "oklch(61% 0.0098 87.47)",
+          "oklch(72% 0.0098 87.47)",
+          "oklch(84% 0.0098 87.47)",
+          "oklch(95% 0.0098 87.47)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Brown ink",
+        "tonalRamp": [
+          "oklch(15% 0.0168 82.31)",
+          "oklch(26% 0.0168 82.31)",
+          "oklch(38% 0.0168 82.31)",
+          "oklch(49% 0.0168 82.31)",
+          "oklch(61% 0.0168 82.31)",
+          "oklch(72% 0.0168 82.31)",
+          "oklch(84% 0.0168 82.31)",
+          "oklch(95% 0.0168 82.31)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted brown",
+        "tonalRamp": [
+          "oklch(15% 0.0327 79.21)",
+          "oklch(26% 0.0327 79.21)",
+          "oklch(38% 0.0327 79.21)",
+          "oklch(49% 0.0327 79.21)",
+          "oklch(61% 0.0327 79.21)",
+          "oklch(72% 0.0327 79.21)",
+          "oklch(84% 0.0327 79.21)",
+          "oklch(95% 0.0327 79.21)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Sand line",
+        "tonalRamp": [
+          "oklch(15% 0.0222 83.26)",
+          "oklch(26% 0.0222 83.26)",
+          "oklch(38% 0.0222 83.26)",
+          "oklch(49% 0.0222 83.26)",
+          "oklch(61% 0.0222 83.26)",
+          "oklch(72% 0.0222 83.26)",
+          "oklch(84% 0.0222 83.26)",
+          "oklch(95% 0.0222 83.26)"
+        ]
+      },
+      "clay": {
+        "role": "primary",
+        "displayName": "Clay",
+        "tonalRamp": [
+          "oklch(15% 0.1025 42.63)",
+          "oklch(26% 0.1025 42.63)",
+          "oklch(38% 0.1025 42.63)",
+          "oklch(49% 0.1025 42.63)",
+          "oklch(61% 0.1025 42.63)",
+          "oklch(72% 0.1025 42.63)",
+          "oklch(84% 0.1025 42.63)",
+          "oklch(95% 0.1025 42.63)"
+        ]
+      },
+      "clay-dark": {
+        "role": "primary",
+        "displayName": "Dark clay",
+        "tonalRamp": [
+          "oklch(15% 0.0850 41.76)",
+          "oklch(26% 0.0850 41.76)",
+          "oklch(38% 0.0850 41.76)",
+          "oklch(49% 0.0850 41.76)",
+          "oklch(61% 0.0850 41.76)",
+          "oklch(72% 0.0850 41.76)",
+          "oklch(84% 0.0850 41.76)",
+          "oklch(95% 0.0850 41.76)"
+        ]
+      },
+      "stage": {
+        "role": "neutral",
+        "displayName": "Stage sand",
+        "tonalRamp": [
+          "oklch(15% 0.0173 84.59)",
+          "oklch(26% 0.0173 84.59)",
+          "oklch(38% 0.0173 84.59)",
+          "oklch(49% 0.0173 84.59)",
+          "oklch(61% 0.0173 84.59)",
+          "oklch(72% 0.0173 84.59)",
+          "oklch(84% 0.0173 84.59)",
+          "oklch(95% 0.0173 84.59)"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field paper",
+        "tonalRamp": [
+          "oklch(15% 0.0082 91.48)",
+          "oklch(26% 0.0082 91.48)",
+          "oklch(38% 0.0082 91.48)",
+          "oklch(49% 0.0082 91.48)",
+          "oklch(61% 0.0082 91.48)",
+          "oklch(72% 0.0082 91.48)",
+          "oklch(84% 0.0082 91.48)",
+          "oklch(95% 0.0082 91.48)"
+        ]
+      },
+      "button-text": {
+        "role": "neutral",
+        "displayName": "Warm light",
+        "tonalRamp": [
+          "oklch(15% 0.0163 79.35)",
+          "oklch(26% 0.0163 79.35)",
+          "oklch(38% 0.0163 79.35)",
+          "oklch(49% 0.0163 79.35)",
+          "oklch(61% 0.0163 79.35)",
+          "oklch(72% 0.0163 79.35)",
+          "oklch(84% 0.0163 79.35)",
+          "oklch(95% 0.0163 79.35)"
+        ]
+      },
+      "palette-selected": {
+        "role": "neutral",
+        "displayName": "Selected sand",
+        "tonalRamp": [
+          "oklch(15% 0.0211 79.09)",
+          "oklch(26% 0.0211 79.09)",
+          "oklch(38% 0.0211 79.09)",
+          "oklch(49% 0.0211 79.09)",
+          "oklch(61% 0.0211 79.09)",
+          "oklch(72% 0.0211 79.09)",
+          "oklch(84% 0.0211 79.09)",
+          "oklch(95% 0.0211 79.09)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Chinese display",
+        "purpose": "Main headline; base clamp plus source breakpoint overrides."
+      },
+      "brand": {
+        "displayName": "Serif product name",
+        "purpose": "Home identity; bundled 600 weight."
+      },
+      "title": {
+        "displayName": "Panel title",
+        "purpose": "Creation-panel heading."
+      },
+      "body": {
+        "displayName": "Introductory copy",
+        "purpose": "Supporting copy; maximum 40ch."
+      },
+      "label": {
+        "displayName": "Field label",
+        "purpose": "Field legends and title-field label."
+      },
+      "control": {
+        "displayName": "Compact control",
+        "purpose": "Palette choices and text actions; no global minimum text-size rule is inferred."
+      },
+      "primary-action": {
+        "displayName": "Primary action",
+        "purpose": "Main assembly/reopen control."
+      }
+    },
+    "shadows": [
+      {
+        "name": "warm-swatch-inset",
+        "value": "inset -4px -2px 0 #987449",
+        "purpose": "Small material cue inside the warm palette swatch; not a card elevation token."
+      },
+      {
+        "name": "scene-contact",
+        "value": "radial stops: 0 rgba(60,43,23,.38); .35 rgba(60,43,23,.19); 1 rgba(60,43,23,0)",
+        "purpose": "Canvas texture on a 4.9 × 3.7 world-unit plane beneath the physical bottle display."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": ".15s ease",
+        "purpose": "Background and border transitions on enabled primary, rotation and palette controls; disclosure chevron transform."
+      },
+      {
+        "name": "assembly",
+        "value": "2600ms; e=t*t*(3-2*t); 2500 temporary points",
+        "purpose": "Level-dependent smoothstep paths with arc and swirl; the mantle/core/cap fill rises from 28% to 95% progress, then the sealed texture remains static."
+      },
+      {
+        "name": "rotation-release",
+        "value": "yawVelocity=delta*.65; damping=pow(.9,dt*60)",
+        "purpose": "Decaying sealed-bottle pointer-release inertia; stops below .00005."
+      },
+      {
+        "name": "loose-settle",
+        "value": "damping=pow(.86,step); spring=.0015*step; step=min(2,dt*60)",
+        "purpose": "CPU pixel-grain positions return to their original photo positions; reset below .0001 mean energy."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "No CSS transitions/animations, loose stirring or release inertia; assembly immediately reaches sealed state."
+      }
+    ],
+    "focus": [
+      {
+        "name": "interactive",
+        "value": "outline:2px solid var(--clay);outline-offset:5px",
+        "purpose": "Buttons, links, inputs, disclosure summaries and the stage."
+      },
+      {
+        "name": "stage",
+        "value": "outline-offset:-5px",
+        "purpose": "Retain the focus boundary inside the scene rectangle."
+      },
+      {
+        "name": "visible-upload",
+        "value": "outline:2px solid var(--clay);outline-offset:3px",
+        "purpose": "Visible upload label while its visually hidden file input has focus."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "min-width:1600px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "max-width:1100px"
+      },
+      {
+        "name": "single-column",
+        "value": "max-width:760px"
+      },
+      {
+        "name": "small-phone",
+        "value": "max-width:370px"
+      }
+    ],
+    "materials": [
+      {
+        "name": "glass-shell",
+        "value": "ShaderMaterial; transparent:true; depthWrite:false; FrontSide; base alpha:.012; Fresnel exponent:3.2; curve exponent:1.6; alpha capped at .8",
+        "purpose": "Thin transparent lathed shell and cloned torus-rim material. Bundled studio-small-09.hdr supplies directional reflection, with stronger edges and a narrow pane highlight; no physical refraction."
+      },
+      {
+        "name": "studio-reflection",
+        "value": "HDRLoader; direct equirectangular shader sample; PMREM world.environment; environmentIntensity:.5",
+        "purpose": "Bundled real HDR reflection for the glass; the shader retains its edge tint and pane highlight if the image cannot load."
+      },
+      {
+        "name": "cork",
+        "value": "CanvasTexture base:#bd9567; MeshStandardMaterial color:0xffffff; bumpScale:.028; roughness:.96; envMapIntensity:.18",
+        "purpose": "Procedurally textured stopper and small top bevel."
+      },
+      {
+        "name": "pixel-sand-field",
+        "value": "CPU grainField; seeded LCG:907; sample interval:1.9px; jitter:1.7px; 85% 2×2 grains, otherwise 1×1; NearestFilter; generateMipmaps:false",
+        "purpose": "Hard pixel grains carry image-derived color, per-grain shade variation and a brighter top-left pixel over seeded dark gaps. This is the grain treatment guided by the user-provided reference."
+      },
+      {
+        "name": "loose-photo-plane",
+        "value": "CanvasTexture; MeshBasicMaterial toneMapped:false; PlaneGeometry:5.7×3.42; canvas width=clamp(round(min(stageWidth*.9,stageHeight*1.36)*1.2),240,720); height=round(width*.6)",
+        "purpose": "Visible loose photograph field; pointer dragging updates CPU grain positions and repaints the texture."
+      },
+      {
+        "name": "photo-mantle",
+        "value": "512×256 grainField CanvasTexture; MeshBasicMaterial toneMapped:false; open CylinderGeometry radius:.91; height:PI*.91; rotationY:PI",
+        "purpose": "Opaque granular photograph wrap in the sealed bottle; seam width is applied when sampling the source. It remains intact during rotation."
+      },
+      {
+        "name": "sand-cap-and-core",
+        "value": "128×128 grainField cap over #c2a479; dark closed CylinderGeometry core color:0x302922; MeshBasicMaterial toneMapped:false",
+        "purpose": "Granular top surface and opaque inner volume beneath the photograph mantle."
+      },
+      {
+        "name": "assembly-grains",
+        "value": "2500 ShaderMaterial Points; transparent:false; depthWrite:true; point size clamped:1–4px; top-left highlight:.045",
+        "purpose": "Temporary flying grains visible from 8% to 97% of assembly progress; hidden in both settled loose and sealed presentations."
+      },
+      {
+        "name": "plinth",
+        "value": "MeshStandardMaterial; color:0xcabc9f; roughness:.82; envMapIntensity:.24",
+        "purpose": "Low cylindrical display base and shadow receiver."
+      }
+    ],
+    "provenance": {
+      "sources": [
+        "src/styles.css",
+        "src/app.ts",
+        "src/scene.ts",
+        "src/main.ts",
+        "src/assets/cat.png",
+        "src/assets/studio-small-09.hdr",
+        "PRODUCT.md",
+        ".impeccable/surface.md",
+        ".impeccable/quality-bar.md"
+      ],
+      "authority": "User-provided pixel-sand reference is positive authority for the grain treatment. The surrounding interface and bottle remain code-led; full rebuilt-bottle acceptance is pending.",
+      "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
+      "notCanonized": "The build carries 8–11px ancillary text in several contexts. Those sizes are captured only where needed to reproduce actual snippets, not promoted into a universal legibility rule. No browser or visual verification was performed by this documentation pass.",
+      "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule."
+    },
+    "camera": [
+      {
+        "name": "stage-fit",
+        "value": "PerspectiveCamera fov:32; sealedDistance=max(9.4,8.5/aspect); looseDistance=max(9.4,1.5+11.03/aspect)",
+        "purpose": "Separate aspect-aware fits for the sealed bottle and 5.7 × 3.42 world-unit loose plane; camera position (0,.32+distance*.094,distance), looking at (0,.32,0)."
+      },
+      {
+        "name": "assembly-fit",
+        "value": "blend=progress*progress*(3-2*progress); distance=looseDistance*(1-blend)+sealedDistance*blend",
+        "purpose": "Smoothly move from the loose-field fit to the sealed-bottle fit during assembly; resize reapplies the active presentation fit."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Bottle action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main assembly action; the live app changes its label with the bottle phase.",
+      "html": "<button class=\"ds-primary\" type=\"button\"><span>装进瓶子</span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button>",
+      "css": ".ds-primary{display:flex;align-items:center;justify-content:space-between;width:100%;height:51px;padding:0 18px;background:var(--clay);color:#fff8ed;border:0;border-radius:3px;font:400 14px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.08em;cursor:pointer;transition:background .15s}.ds-primary svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-primary:not(:disabled):hover{background:var(--clay-dark)}.ds-primary:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-primary:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-primary{height:54px;font-size:15px}}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
+    },
+    {
+      "name": "Rotation action",
+      "kind": "button",
+      "refersTo": "button-rotation",
+      "description": "Explicit accessible counterpart to horizontal bottle dragging.",
+      "html": "<button class=\"ds-rotation\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button>",
+      "css": ".ds-rotation{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:var(--ink);border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-rotation svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-rotation:not(:disabled):hover{background:#e2d7c6;border-color:#a89576}.ds-rotation:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-rotation:disabled{opacity:.48;cursor:default}@media(prefers-reduced-motion:reduce){.ds-rotation{transition:none}}"
+    },
+    {
+      "name": "Text action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Quiet reset and recovery actions.",
+      "html": "<button class=\"ds-text\" type=\"button\">换回示例，重新开始</button>",
+      "css": ".ds-text{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font:400 11px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted);cursor:pointer}.ds-text:hover{color:var(--clay)}.ds-text:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-text:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-text{font-size:12px}}"
+    },
+    {
+      "name": "Palette option",
+      "kind": "chip",
+      "refersTo": "palette-option",
+      "description": "Pressed-state photo-palette choice with an explicit label and decorative swatch.",
+      "html": "<div class=\"ds-palettes\"><button class=\"ds-palette\" type=\"button\" aria-pressed=\"true\"><span class=\"ds-swatch ds-original\" aria-hidden=\"true\"></span>照片原色</button><button class=\"ds-palette\" type=\"button\" aria-pressed=\"false\"><span class=\"ds-swatch ds-warm\" aria-hidden=\"true\"></span>暖调沙画</button></div>",
+      "css": ".ds-palettes{display:flex;gap:10px}.ds-palette{display:flex;align-items:center;justify-content:center;gap:8px;flex:1;min-height:44px;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:3px;font:400 11px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;cursor:pointer;transition:background .15s,border-color .15s}.ds-palette[aria-pressed=true]{background:#ede4d6;border-color:#8c775b}.ds-palette:not(:disabled):hover{background:#eee8dd}.ds-palette:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-palette:disabled{opacity:.48;cursor:default}.ds-swatch{width:13px;height:13px;border-radius:50%;flex-shrink:0}.ds-original{background:conic-gradient(#78a7a3,#cd9271,#dbbd8c,#78a7a3)}.ds-warm{background:#b99262;box-shadow:inset -4px -2px 0 #987449}@media(max-width:760px){.ds-palette{min-height:48px;font-size:12px}}@media(prefers-reduced-motion:reduce){.ds-palette{transition:none}}"
+    },
+    {
+      "name": "Bottle title field",
+      "kind": "input",
+      "refersTo": "input-title",
+      "description": "Named, single-line bottle title with a visible label.",
+      "html": "<div class=\"ds-title\"><label for=\"ds-bottle-title\">给这瓶回忆起个名字</label><input id=\"ds-bottle-title\" type=\"text\" placeholder=\"比如，那天的海\" autocomplete=\"off\"></div>",
+      "css": ".ds-title{display:flex;flex-direction:column;gap:9px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--ink)}.ds-title label{font-size:12px;font-weight:500;line-height:1.7}.ds-title input{width:100%;height:44px;padding:8px 11px;border:1px solid var(--line);border-radius:3px;background:#faf8f2;color:var(--ink);font:400 13px/1.8 -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;caret-color:var(--clay)}.ds-title input::placeholder{color:#746956}.ds-title input:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:760px){.ds-title label{font-size:13px}.ds-title input{height:48px;font-size:14px}}"
+    },
+    {
+      "name": "Photo upload route",
+      "kind": "input",
+      "description": "Underlined visible label for a visually hidden native file picker. The preview omits the user photo.",
+      "html": "<div class=\"ds-upload\"><label for=\"ds-photo\">选一张自己的照片<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5\"/></svg></label><input id=\"ds-photo\" type=\"file\" accept=\"image/jpeg,image/png,image/webp\"></div>",
+      "css": ".ds-upload{position:relative;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--ink)}.ds-upload label{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;cursor:pointer;border-bottom:1px solid #a48e71;line-height:1.5}.ds-upload svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-upload label:hover{color:var(--clay)}.ds-upload input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}.ds-upload:focus-within label{outline:2px solid var(--clay);outline-offset:3px}@media(max-width:760px){.ds-upload label{font-size:14px}}"
+    },
+    {
+      "name": "Home navigation",
+      "kind": "nav",
+      "refersTo": "brand-navigation",
+      "description": "The single home route and bundled serif product identity.",
+      "html": "<a class=\"ds-brand\" href=\"./\" aria-label=\"砂藏首页\"><svg class=\"ds-brand-mark\" viewBox=\"0 0 32 40\" aria-hidden=\"true\"><path d=\"M11 3h10v7l5 6v17a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V16l5-6V3Z\"/><path d=\"M7 25c6-7 12 6 18-1M7 29c7-5 12 5 18 0M12 7h8\"/></svg><span class=\"ds-brand-name\">砂藏</span><span class=\"ds-brand-english\">SANDKEEP</span></a>",
+      "css": ".ds-brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.ds-brand-mark{width:25px;height:33px;color:var(--clay);fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-brand-name{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.13em}.ds-brand-english{margin:4px 0 0 8px;font:600 10px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.22em;color:var(--muted)}.ds-brand:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:1100px){.ds-brand-english{display:none}}@media(max-width:760px){.ds-brand-name{font-size:25px}.ds-brand-mark{width:23px;height:30px}}"
+    },
+    {
+      "name": "Bottle gallery caption",
+      "kind": "card",
+      "refersTo": "bottle-gallery",
+      "description": "Flat stage surface and ruled caption; this snippet demonstrates the container, not the live WebGL bottle.",
+      "html": "<section class=\"ds-gallery\" aria-label=\"瓶子预览\"><div class=\"ds-gallery-caption\"><span>那天的海</span><button class=\"ds-gallery-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></section>",
+      "css": ".ds-gallery{background:var(--stage);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-gallery-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 26px;padding:20px 0 23px;border-top:1px solid #d3c9b6}.ds-gallery-caption>span{font-size:16px;letter-spacing:.08em;line-height:1.6;overflow-wrap:anywhere}.ds-gallery-turn{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:inherit;border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-gallery-turn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-gallery-turn:hover{background:#e2d7c6;border-color:#a89576}.ds-gallery-turn:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:760px){.ds-gallery-caption{margin:0 18px;padding:15px 0 18px}.ds-gallery-caption>span{font-size:14px}}@media(prefers-reduced-motion:reduce){.ds-gallery-turn{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A personal display plinth in warm daylight",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.\n\nThis system is extracted from the rebuilt application. The user-provided pixel-sand reference is positive authority for the grain treatment; the surrounding interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and acceptance of the full rebuilt bottle is pending. Thin reflective glass, textured cork, hard-pixel photograph grains and a contact shadow describe the current rendering choices; they are not a claim of photorealism.",
+    "keyCharacteristics": [
+      "Warm, low-chroma interface around a colorful personal photograph.",
+      "Chinese serif display type paired with Chinese system sans controls.",
+      "A large object stage with compact controls and visibly separated states.",
+      "Restrained interface depth; material depth is concentrated in the 3D object."
+    ],
+    "rules": [
+      {
+        "name": "The Photograph Color Rule",
+        "body": "Let the photograph supply the vivid color. Use clay for the principal action, focus and small identity accents.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Type Voices Rule",
+        "body": "Use the bundled serif for the product name and main headline; use the system sans stack for controls and supporting copy.",
+        "section": "typography"
+      },
+      {
+        "name": "The Object Depth Rule",
+        "body": "Keep interface surfaces flat; express material depth through the bottle, cork, grains, plinth and scene contact shadow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the existing paper, ink, muted, line, clay and stage roles instead of introducing parallel surface colors.",
+      "Do preserve the bundled serif headline and system sans control relationship.",
+      "Do keep interactive targets at least the observed 44px height or diameter, with the existing clay focus treatment.",
+      "Do place the object before creation controls when the studio becomes one column.",
+      "Do preserve the finished photograph while turning the bottle and respect reduced motion."
+    ],
+    "donts": [
+      "Don't add card shadows or rounded floating panels to the currently flat interface.",
+      "Don't use the scene’s photo colors as competing interface accents.",
+      "Don't blur away the pixel grains, top-left highlights or dark gaps established by the grain reference.",
+      "Don't treat the user-provided grain reference as approval of the full rebuilt bottle."
+    ]
+  }
+}

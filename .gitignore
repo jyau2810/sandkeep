@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.DS_Store
+.pstack/
+.impeccable/review/
+.impeccable/hook.cache.json
+test-results/
+playwright-report/
+work/
+.env
+.env.*
+!.env.example
+
+submission/media/material-preview.png
+submission/texture-match-preview.png
+submission/bottle-reference-preview.png
