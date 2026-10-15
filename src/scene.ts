@@ -2,11 +2,13 @@ import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import studioUrl from './assets/studio-small-09.hdr?url';
 import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from './domain';
-import { createLooseSand, type LooseSand } from './loose-sand';
+import { createLooseSand, type LooseSand, type SandTransferGrain, type SandTransferKind } from './loose-sand';
+import { createSandStream } from './sand-transfer';
 
 export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
   assemble(signal?: AbortSignal): Promise<SceneResult>;
+  disassemble(signal?: AbortSignal): Promise<SceneResult>;
   turnBy(radians: number): void;
   setLooseTool(tool: LooseTool): void;
   restoreLoose(): void;
@@ -14,35 +16,19 @@ export interface BottleScene {
 }
 
 type Options = { reducedMotion: boolean; onFault(issue: AppIssue): void };
-type GrainField = {
-  canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
-  frame: ImageData;
-  pixels: Uint32Array;
-  background: Uint32Array;
-  positions: Float32Array;
-  home: Float32Array;
-  velocity: Float32Array;
-  colors: Uint32Array;
-  highlights: Uint32Array;
-  sizes: Uint8Array;
-  count: number;
-};
 type Content = {
   draft: BottleDraft;
-  grains: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
-  field: GrainField;
   loose: LooseSand;
   mantle: THREE.Mesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
   cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshStandardMaterial>;
   fillPlane: THREE.Plane;
   source: HTMLCanvasElement;
-  flat: Float32Array;
-  target: Float32Array;
-  count: number;
   group: THREE.Group;
 };
-type Assembly = {
+type Transfer = {
+  kind: SandTransferKind;
+  sourceYaw: number;
+  grains: readonly SandTransferGrain[];
   started: number;
   promise: Promise<SceneResult>;
   resolve: (result: SceneResult) => void;
@@ -63,8 +49,7 @@ const sandProfile = [
   [0.963, -1.31], [radius, 1.20], [0.960, 1.35], [0.925, 1.52],
   [0.805, 1.68], [0.626, 1.84], [0.463, 1.98], [0.425, 2.05], [0.422, fillTop],
 ] as const;
-const flyingCount = 2500;
-const duration = 2600;
+const transferDuration = { assemble: 2800, pour: 2900 } as const;
 
 function randomAt(seed: number): number {
   const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -119,77 +104,6 @@ function photoCanvas(image: CanvasImageSource, width: number, height: number, se
   const scale = Math.min(width * (1 - seam) / w, height / h);
   ctx.drawImage(image, (width - w * scale) / 2, (height - h * scale) / 2, w * scale, h * scale);
   return canvas;
-}
-
-function grainField(source: CanvasImageSource, width: number, height: number, draft: BottleDraft, seam = 0): GrainField {
-  const canvas = photoCanvas(source, width, height, seam);
-  const context = canvas.getContext('2d', { willReadFrequently: true })!;
-  const data = context.getImageData(0, 0, width, height).data;
-  const capacity = Math.ceil(width / 1.9) * Math.ceil(height / 1.9);
-  const positions = new Float32Array(capacity * 2);
-  const colors = new Uint32Array(capacity);
-  const highlights = new Uint32Array(capacity);
-  const sizes = new Uint8Array(capacity);
-  const rgba = (r: number, g: number, b: number) => (255 << 24) | (b << 16) | (g << 8) | r;
-  const clamp = (value: number) => Math.max(0, Math.min(255, value)) | 0;
-  let seed = 907;
-  const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-  let count = 0;
-  for (let y = 1; y < height - 2; y += 1.9) for (let x = 1; x < width - 2; x += 1.9) {
-    const px = x + (rand() - 0.5) * 1.7;
-    const py = y + (rand() - 0.5) * 1.7;
-    const index = ((py | 0) * width + (px | 0)) * 4;
-    const alpha = data[index + 3] / 255;
-    let r = data[index] * alpha + 48 * (1 - alpha);
-    let g = data[index + 1] * alpha + 40 * (1 - alpha);
-    let b = data[index + 2] * alpha + 33 * (1 - alpha);
-    const shade = 0.82 + rand() * 0.32;
-    if (draft.colorMode === 'warm') {
-      const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
-      const t = Math.max(0, Math.min(1, (lum - 0.08) * 1.16));
-      r = 49 + 196 * t;
-      g = 31 + 161 * t;
-      b = 19 + 111 * t;
-    }
-    r = clamp(r * shade); g = clamp(g * shade); b = clamp(b * shade);
-    positions[count * 2] = px;
-    positions[count * 2 + 1] = py;
-    colors[count] = rgba(r, g, b);
-    highlights[count] = rgba(clamp(r + 19), clamp(g + (draft.colorMode === 'warm' ? 17 : 18)), clamp(b + (draft.colorMode === 'warm' ? 13 : 15)));
-    sizes[count] = rand() < 0.85 ? 2 : 1;
-    rand();
-    count++;
-  }
-  const frame = context.createImageData(width, height);
-  const pixels = new Uint32Array(frame.data.buffer);
-  const background = new Uint32Array(width * height);
-  seed = 412;
-  for (let i = 0; i < background.length; i++) {
-    const d = (rand() * 12) | 0;
-    background[i] = rgba(40 + d, 34 + d, 29 + d);
-  }
-  const field = { canvas, context, frame, pixels, background, positions: positions.slice(0, count * 2), home: positions.slice(0, count * 2), velocity: new Float32Array(count * 2), colors, highlights, sizes, count };
-  paintField(field);
-  return field;
-}
-
-function paintField(field: GrainField): void {
-  const { pixels, background, positions, colors, highlights, sizes, canvas, count } = field;
-  const { width, height } = canvas;
-  pixels.set(background);
-  for (let i = 0; i < count; i++) {
-    const x = positions[i * 2] | 0;
-    const y = positions[i * 2 + 1] | 0;
-    if (x < 1 || x >= width - 2 || y < 1 || y >= height - 2) continue;
-    const q = y * width + x;
-    pixels[q] = highlights[i];
-    if (sizes[i] === 2) {
-      pixels[q + 1] = colors[i];
-      pixels[q + width] = colors[i];
-      pixels[q + width + 1] = colors[i];
-    }
-  }
-  field.context.putImageData(field.frame, 0, 0);
 }
 
 function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft): THREE.MeshStandardMaterial {
@@ -384,32 +298,6 @@ function sandRadiusAt(y: number): number {
   return sandProfile[sandProfile.length - 1][0];
 }
 
-function grainMaterial(): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: { pointScale: { value: 750 } },
-    vertexColors: true, depthWrite: true, transparent: false, toneMapped: false,
-    vertexShader: `
-      uniform float pointScale;
-      attribute float grainSize;
-      varying vec3 mineralColor;
-      void main() {
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        mineralColor = color;
-        gl_Position = projectionMatrix * mv;
-        gl_PointSize = clamp(grainSize * pointScale / -mv.z, 1.0, 4.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec3 mineralColor;
-      void main() {
-        float topLeft = step(gl_PointCoord.x, 0.5) * step(gl_PointCoord.y, 0.5);
-        gl_FragColor = vec4(mineralColor + topLeft * vec3(0.045), 1.0);
-        #include <colorspace_fragment>
-      }
-    `,
-  });
-}
-
 function clearGlass(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: { studio: { value: null }, hasStudio: { value: 0 } },
@@ -581,7 +469,9 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
 
   let content: Content | null = null;
   let mode: Presentation = 'loose';
-  let assembly: Assembly | null = null;
+  let transfer: Transfer | null = null;
+  const stream = createSandStream(host);
+  const stageBackground = world.background;
   let disposed = false;
   let contextLost = false;
   let generation = 0;
@@ -615,17 +505,13 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     height = Math.max(1, rect.height);
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    placeCamera();
-    if (content) {
-      content.grains.material.uniforms.pointScale.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-    }
+    if (transfer) placeCamera(1);
+    else placeCamera();
     requestFrame();
   }
 
   function releaseContent(value: Content): void {
     bottle.remove(value.group);
-    value.grains.geometry.dispose();
-    value.grains.material.dispose();
     value.loose.dispose();
     for (const mesh of [value.mantle, value.cap]) {
       mesh.geometry.dispose();
@@ -633,7 +519,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       if (mesh.material instanceof THREE.MeshStandardMaterial) mesh.material.bumpMap?.dispose();
       mesh.material.dispose();
     }
-    value.field.canvas.width = value.field.canvas.height = 0;
     value.source.width = value.source.height = 0;
   }
 
@@ -642,10 +527,10 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     canvas.style.cursor = next === 'sealed' ? 'grab' : 'crosshair';
     vessel.visible = plinth.visible = shadow.visible = next === 'sealed';
     if (!content) return;
-    content.grains.visible = false;
     content.loose.setActive(next === 'loose' && !disposed && !contextLost);
     content.mantle.visible = content.cap.visible = next === 'sealed';
     if (next === 'sealed') {
+      content.fillPlane.normal.set(0, -1, 0);
       content.fillPlane.constant = fillTop;
       content.cap.position.y = fillTop;
       content.cap.scale.setScalar(sandRadiusAt(fillTop));
@@ -653,44 +538,132 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     resize();
   }
 
-  function finishAssembly(result: SceneResult): void {
-    const active = assembly;
-    if (!active) return;
-    assembly = null;
-    clearTimeout(active.timeout);
-    active.signal?.removeEventListener('abort', active.abort);
-    applyPresentation(result === 'completed' ? 'sealed' : 'loose');
-    active.resolve(result);
+  const clamp = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
+  const smooth = (value: number) => { const t = clamp(value); return t * t * (3 - 2 * t); };
+
+  function resetTransferPose(): void {
+    bottle.position.set(0, 0, 0);
+    bottle.scale.setScalar(1);
+    bottle.rotation.x = bottle.rotation.z = 0;
+    corkMesh.position.y = 2.38;
+    corkBevel.position.y = 2.595;
+    corkMesh.visible = corkBevel.visible = true;
+    plinth.scale.setScalar(1);
+    world.background = stageBackground;
+    renderer.setClearColor(0xece6da, 1);
+    canvas.style.position = canvas.style.inset = canvas.style.zIndex = canvas.style.pointerEvents = '';
+    shadow.material.opacity = 1;
+    stream.clear();
+    delete host.dataset.transfer;
+    if (!content) return;
+    const frame = content.loose.element.firstElementChild as HTMLElement;
+    frame.style.transform = frame.style.transformOrigin = frame.style.opacity = '';
+    content.fillPlane.normal.set(0, -1, 0);
+    content.fillPlane.constant = fillTop;
+    content.cap.position.y = fillTop;
+    content.cap.scale.setScalar(sandRadiusAt(fillTop));
   }
 
-  function animateAssembly(now: number): void {
-    if (!content || !assembly) return;
-    const progress = Math.min(1, (now - assembly.started) / duration);
-    if (progress >= 1) { finishAssembly('completed'); return; }
-    placeCamera(progress);
-    content.grains.visible = progress >= 0.08 && progress < 0.97;
-    vessel.visible = plinth.visible = shadow.visible = progress > 0.12;
-    content.mantle.visible = content.cap.visible = progress > 0.3;
-    const fill = Math.max(0.001, Math.min(1, (progress - 0.28) / 0.67));
-    const level = sandBase + (fillTop - sandBase) * fill;
-    content.fillPlane.constant = level;
+  function finishTransfer(result: SceneResult): void {
+    const current = transfer;
+    if (!current) return;
+    transfer = null;
+    clearTimeout(current.timeout);
+    current.signal?.removeEventListener('abort', current.abort);
+    content?.loose.finishTransfer(result === 'completed');
+    resetTransferPose();
+    bottle.rotation.y = current.sourceYaw;
+    const destination: Presentation = current.kind === 'assemble' ? 'sealed' : 'loose';
+    const source: Presentation = current.kind === 'assemble' ? 'loose' : 'sealed';
+    applyPresentation(result === 'completed' ? destination : source);
+    current.resolve(result);
+  }
+
+  function screenPoint(point: THREE.Vector3): { x: number; y: number } {
+    const projected = point.clone().project(camera);
+    return { x: (projected.x + 1) * width / 2, y: (1 - projected.y) * height / 2 };
+  }
+
+  function moveBottleTo(x: number, y: number): void {
+    const point = new THREE.Vector3(x / width * 2 - 1, 1 - y / height * 2, 0).unproject(camera);
+    const direction = point.sub(camera.position).normalize();
+    bottle.position.copy(camera.position).addScaledVector(direction, -camera.position.z / direction.z);
+  }
+
+  function animateTransfer(now: number): void {
+    if (!content || !transfer) return;
+    const current = transfer;
+    const progress = clamp((now - current.started) / transferDuration[current.kind]);
+    if (progress >= 1) { finishTransfer('completed'); return; }
+    const frame = content.loose.element.firstElementChild as HTMLElement;
+    placeCamera(1);
+    camera.updateMatrixWorld();
+    vessel.visible = true;
+    plinth.visible = shadow.visible = false;
+    content.mantle.visible = content.cap.visible = true;
+    bottle.rotation.y = current.sourceYaw;
+    let flow: number;
+    let fill: number;
+    if (current.kind === 'pour') {
+      plinth.visible = shadow.visible = progress < 0.16;
+      plinth.scale.setScalar(Math.max(0.001, 1 - smooth((progress - 0.02) / 0.14)));
+      shadow.material.opacity = 1 - smooth(progress / 0.16);
+      const tip = smooth((progress - 0.04) / 0.25);
+      const exit = smooth((progress - 0.86) / 0.14);
+      const restingCenter = screenPoint(new THREE.Vector3(0, 0, 0));
+      const smallX = width * (0.22 - exit * 0.6);
+      const smallY = height * (0.22 - exit * 0.15);
+      moveBottleTo(THREE.MathUtils.lerp(restingCenter.x, smallX, tip), THREE.MathUtils.lerp(restingCenter.y, smallY, tip));
+      bottle.scale.setScalar(THREE.MathUtils.lerp(1, 0.47 - exit * 0.15, tip));
+      bottle.rotation.z = -THREE.MathUtils.degToRad(115) * tip;
+      const uncork = smooth(progress / 0.16);
+      corkMesh.position.y = 2.38 + uncork * 0.9;
+      corkBevel.position.y = 2.595 + uncork * 0.9;
+      corkMesh.visible = corkBevel.visible = progress < 0.18;
+      flow = clamp((progress - 0.27) / 0.59);
+      fill = 1 - flow;
+      const settle = smooth((progress - 0.82) / 0.18);
+      frame.style.transformOrigin = '50% 100%';
+      frame.style.transform = `translateY(${(1 - settle) * 18}px) scale(${0.77 + settle * 0.23})`;
+      frame.style.opacity = String(smooth(progress / 0.16));
+    } else {
+      const enter = smooth(progress / 0.14);
+      const dock = smooth((progress - 0.78) / 0.20);
+      const restingCenter = screenPoint(new THREE.Vector3(0, 0, 0));
+      moveBottleTo(THREE.MathUtils.lerp(width * (1.14 - enter * 0.36), restingCenter.x, dock), THREE.MathUtils.lerp(height * 0.46, restingCenter.y, dock));
+      bottle.scale.setScalar(THREE.MathUtils.lerp(0.43, 1, dock));
+      bottle.rotation.z = 0;
+      flow = clamp((progress - 0.12) / 0.66);
+      fill = clamp((flow - 0.16) / 0.84);
+      const gather = smooth(progress / 0.18);
+      const leave = smooth((progress - 0.78) / 0.15);
+      frame.style.transformOrigin = '50% 100%';
+      frame.style.transform = `translate(${-width * 0.18 * gather}px,${leave * height * 0.2}px) scale(${1 - gather * 0.38 - leave * 0.18})`;
+      frame.style.opacity = String(1 - leave);
+      const close = smooth((progress - 0.86) / 0.13);
+      corkMesh.visible = corkBevel.visible = progress > 0.86;
+      corkMesh.position.y = 2.38 + (1 - close) * 0.8;
+      corkBevel.position.y = 2.595 + (1 - close) * 0.8;
+      if (progress > 0.91) {
+        plinth.visible = shadow.visible = true;
+        plinth.scale.setScalar(smooth((progress - 0.91) / 0.08));
+      }
+    }
+    content.loose.transferProgress(flow);
+    bottle.updateMatrixWorld(true);
+    const level = sandBase + (fillTop - sandBase) * Math.max(0.0001, fill);
+    content.fillPlane.set(new THREE.Vector3(0, -1, 0), level).applyMatrix4(bottle.matrixWorld);
     content.cap.position.y = level;
     content.cap.scale.setScalar(sandRadiusAt(level));
-    const positions = content.grains.geometry.getAttribute('position') as THREE.BufferAttribute;
-    const values = positions.array as Float32Array;
-    for (let i = 0; i < content.count; i++) {
-      const k = i * 3;
-      const seed = randomAt(i + 411);
-      const level = (content.target[k + 1] - bottom) / bandHeight;
-      const t = Math.min(1, Math.max(0, (progress - level * 0.22) / 0.78));
-      const e = t * t * (3 - 2 * t);
-      const arc = Math.sin(t * Math.PI);
-      const swirl = arc * (1 - t);
-      values[k] = content.flat[k] * (1 - e) + content.target[k] * e + Math.sin(t * 9 + seed * Math.PI * 2) * swirl * 0.9;
-      values[k + 1] = content.flat[k + 1] * (1 - e) + content.target[k + 1] * e + arc * (1.6 + seed * 0.35);
-      values[k + 2] = content.flat[k + 2] * (1 - e) + content.target[k + 2] * e + Math.cos(t * 9 + seed * Math.PI * 2) * swirl * 0.9;
-    }
-    positions.needsUpdate = true;
+    content.mantle.visible = content.cap.visible = fill > 0.0005;
+    const mouth = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.22, 0)));
+    const neck = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.62, 0)));
+    const length = Math.hypot(neck.x - mouth.x, neck.y - mouth.y) || 1;
+    const direction = { x: (neck.x - mouth.x) / length, y: (neck.y - mouth.y) / length };
+    const hostRect = host.getBoundingClientRect();
+    const sandRect = content.loose.element.querySelector('canvas')!.getBoundingClientRect();
+    if (flow > 0 && flow < 1) stream.draw(current.kind, flow, mouth, direction, { left: sandRect.left - hostRect.left, top: sandRect.top - hostRect.top, width: sandRect.width, height: sandRect.height }, current.grains);
+    else stream.clear();
   }
 
   function draw(now: number): void {
@@ -698,20 +671,20 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (disposed || contextLost) return;
     const dt = previousTime ? Math.min(0.05, (now - previousTime) / 1000) : 1 / 60;
     previousTime = now;
-    if (assembly) animateAssembly(now);
-    if (!gesture && Math.abs(yawVelocity) > 0.00005) {
+    if (transfer) animateTransfer(now);
+    if (!transfer && !gesture && Math.abs(yawVelocity) > 0.00005) {
       bottle.rotation.y += yawVelocity * dt * 60;
       yawVelocity *= Math.pow(0.9, dt * 60);
     } else if (!gesture) yawVelocity = 0;
     try { renderer.render(world, camera); }
     catch {
       contextLost = true;
-      finishAssembly('cancelled');
+      finishTransfer('cancelled');
       content?.loose.setActive(false);
       options.onFault({ code: 'render-failed', message: '瓶子显示中断了，刷新页面后再试试。' });
       return;
     }
-    if (assembly || Math.abs(yawVelocity) > 0.00005) requestFrame();
+    if (transfer || Math.abs(yawVelocity) > 0.00005) requestFrame();
   }
 
   function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
@@ -752,9 +725,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   function prepare(image: HTMLImageElement, draft: BottleDraft): Content {
     const source = makeCanvas(image.naturalWidth, image.naturalHeight);
     source.getContext('2d')!.drawImage(image, 0, 0);
-    const projectedWidth = Math.min(width * 0.9, height * 1.36);
-    const fieldWidth = Math.min(720, Math.max(240, Math.round(projectedWidth * 1.2)));
-    const field = grainField(source, fieldWidth, Math.round(fieldWidth * 0.6), draft);
     const mantleMaterial = packedSandMaterial(source, draft);
     const fillPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), fillTop);
     mantleMaterial.clippingPlanes = [fillPlane];
@@ -768,48 +738,18 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     cap.position.y = fillTop;
     cap.scale.setScalar(sandRadiusAt(fillTop));
     cap.receiveShadow = true;
-    const flat = new Float32Array(flyingCount * 3);
-    const target = new Float32Array(flyingCount * 3);
-    const colors = new Float32Array(flyingCount * 3);
-    const sizes = new Float32Array(flyingCount);
-    const color = new THREE.Color();
-    for (let n = 0; n < flyingCount; n++) {
-      const sample = Math.min(field.count - 1, Math.floor(n / flyingCount * field.count));
-      const x = field.home[sample * 2];
-      const y = field.home[sample * 2 + 1];
-      const u = x / field.canvas.width;
-      const v = 1 - y / field.canvas.height;
-      const k = n * 3;
-      const angle = u * Math.PI * 2 - Math.PI;
-      target[k] = Math.sin(angle) * radius;
-      target[k + 1] = bottom + v * bandHeight;
-      target[k + 2] = Math.cos(angle) * radius;
-      flat[k] = (u - 0.5) * 5.7;
-      flat[k + 1] = (v - 0.5) * 3.42 + 0.28;
-      flat[k + 2] = 1.5;
-      const pixel = field.colors[sample];
-      color.setRGB((pixel & 255) / 255, ((pixel >>> 8) & 255) / 255, ((pixel >>> 16) & 255) / 255, THREE.SRGBColorSpace);
-      colors[k] = color.r; colors[k + 1] = color.g; colors[k + 2] = color.b;
-      sizes[n] = 0.018 + randomAt(n) * 0.007;
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(flat.slice(), 3).setUsage(THREE.DynamicDrawUsage));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('grainSize', new THREE.BufferAttribute(sizes, 1));
-    const grains = new THREE.Points(geometry, grainMaterial());
-    grains.frustumCulled = false;
     const group = new THREE.Group();
-    group.add(grains, mantle, cap);
+    group.add(mantle, cap);
     const looseSource = photoCanvas(source, 720, 432);
     const loose = createLooseSand(looseSource, options.reducedMotion);
     looseSource.width = looseSource.height = 0;
-    return { draft, grains, field, loose, mantle, cap, fillPlane, source, flat, target, count: flyingCount, group };
+    return { draft, loose, mantle, cap, fillPlane, source, group };
   }
 
   async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
     const operation = ++generation;
     for (const cancel of [...pendingDecodes]) cancel();
-    finishAssembly('cancelled');
+    finishTransfer('cancelled');
     if (disposed || contextLost || signal?.aborted) return 'cancelled';
     if (content && content.draft.imageDataUrl === draft.imageDataUrl && content.draft.colorMode === draft.colorMode && content.draft.seamWidth === draft.seamWidth) {
       content.draft = draft;
@@ -838,30 +778,44 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     return 'completed';
   }
 
-  function assemble(signal?: AbortSignal): Promise<SceneResult> {
-    if (disposed || contextLost) return Promise.resolve('cancelled');
-    if (assembly) return assembly.promise;
-    if (signal?.aborted) return Promise.resolve('cancelled');
+  function startTransfer(kind: SandTransferKind, signal?: AbortSignal): Promise<SceneResult> {
+    if (disposed || contextLost || signal?.aborted) return Promise.resolve('cancelled');
+    if (transfer?.kind === kind) return transfer.promise;
+    if (transfer) return Promise.resolve('cancelled');
     if (!content) return Promise.reject(new Error('请先选择一张照片。'));
-    if (mode === 'sealed') return Promise.resolve('completed');
+    const destination: Presentation = kind === 'assemble' ? 'sealed' : 'loose';
+    if (mode === destination) return Promise.resolve('completed');
     if (options.reducedMotion || document.hidden) {
-      applyPresentation('sealed');
+      content.loose.beginTransfer(kind);
+      content.loose.finishTransfer(true);
+      applyPresentation(destination);
       return Promise.resolve('completed');
     }
     let resolve!: (result: SceneResult) => void;
     const promise = new Promise<SceneResult>((done) => { resolve = done; });
-    const abort = () => finishAssembly('cancelled');
-    const timeout = setTimeout(() => finishAssembly('completed'), duration);
-    content.loose.setActive(false);
-    assembly = { started: performance.now(), promise, resolve, timeout, signal, abort };
+    const abort = () => finishTransfer('cancelled');
+    const timeout = setTimeout(() => finishTransfer('completed'), transferDuration[kind] + 80);
+    const grains = content.loose.beginTransfer(kind);
+    transfer = { kind, sourceYaw: bottle.rotation.y, grains, started: performance.now(), promise, resolve, timeout, signal, abort };
+    yawVelocity = 0;
+    if (gesture && canvas.hasPointerCapture(gesture.id)) canvas.releasePointerCapture(gesture.id);
+    gesture = null;
+    canvas.style.cursor = 'default';
+    canvas.style.position = 'absolute';
+    canvas.style.inset = '0';
+    canvas.style.zIndex = '2';
+    canvas.style.pointerEvents = 'none';
+    world.background = null;
+    renderer.setClearColor(0xece6da, 0);
+    host.dataset.transfer = kind;
     signal?.addEventListener('abort', abort, { once: true });
-    bottle.rotation.y = 0;
+    animateTransfer(transfer.started);
     requestFrame();
     return promise;
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (assembly || !content || mode !== 'sealed') return;
+    if (transfer || !content || mode !== 'sealed') return;
     gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, horizontal: event.pointerType === 'mouse' };
     yawVelocity = 0;
     if (event.pointerType === 'mouse') canvas.setPointerCapture(event.pointerId);
@@ -869,7 +823,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   }
 
   function onPointerMove(event: PointerEvent): void {
-    if (!content || assembly) return;
+    if (!content || transfer) return;
     if (!gesture || event.pointerId !== gesture.id || mode !== 'sealed') return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
@@ -898,7 +852,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (document.hidden) {
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
-      if (assembly) finishAssembly('completed');
+      if (transfer) finishTransfer('completed');
     } else {
       previousTime = 0;
       requestFrame();
@@ -911,7 +865,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     for (const cancel of [...pendingDecodes]) cancel();
-    finishAssembly('cancelled');
+    finishTransfer('cancelled');
     content?.loose.setActive(false);
     options.onFault({ code: 'context-lost', message: '浏览器暂停了瓶子的显示，刷新页面就能重新打开。' });
   }
@@ -929,17 +883,18 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
 
   return {
     show,
-    assemble,
+    assemble: (signal?: AbortSignal) => startTransfer('assemble', signal),
+    disassemble: (signal?: AbortSignal) => startTransfer('pour', signal),
     setLooseTool(tool: LooseTool): void {
-      if (disposed || contextLost || assembly || mode !== 'loose') return;
+      if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.setTool(tool);
     },
     restoreLoose(): void {
-      if (disposed || contextLost || assembly || mode !== 'loose') return;
+      if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.restore();
     },
     turnBy(radians: number): void {
-      if (disposed || contextLost || !Number.isFinite(radians)) return;
+      if (disposed || contextLost || transfer || mode !== 'sealed' || !Number.isFinite(radians)) return;
       bottle.rotation.y += radians;
       yawVelocity = 0;
       requestFrame();
@@ -950,7 +905,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       generation++;
       if (frame) cancelAnimationFrame(frame);
       frame = 0;
-      finishAssembly('cancelled');
+      finishTransfer('cancelled');
       for (const cancel of [...pendingDecodes]) cancel();
       observer.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDown);
@@ -966,6 +921,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       world.clear();
       renderer.dispose();
       renderer.forceContextLoss();
+      stream.dispose();
       canvas.remove();
       shadowCanvas.width = shadowCanvas.height = 0;
     },

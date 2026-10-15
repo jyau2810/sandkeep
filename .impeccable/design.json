@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T15:48:43.484904+00:00",
+  "generatedAt": "2026-10-15T16:15:46.086036+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -102,20 +102,6 @@
           "oklch(95% 0.0173 84.59)"
         ]
       },
-      "field": {
-        "role": "neutral",
-        "displayName": "Field paper",
-        "tonalRamp": [
-          "oklch(15% 0.0082 91.48)",
-          "oklch(26% 0.0082 91.48)",
-          "oklch(38% 0.0082 91.48)",
-          "oklch(49% 0.0082 91.48)",
-          "oklch(61% 0.0082 91.48)",
-          "oklch(72% 0.0082 91.48)",
-          "oklch(84% 0.0082 91.48)",
-          "oklch(95% 0.0082 91.48)"
-        ]
-      },
       "button-text": {
         "role": "neutral",
         "displayName": "Warm light",
@@ -204,31 +190,23 @@
     "typographyMeta": {
       "display": {
         "displayName": "Chinese display",
-        "purpose": "Main headline; base clamp plus source breakpoint overrides."
+        "purpose": "Compact main headline: 36px, becoming 28px at the narrow breakpoint; bundled regular weight."
       },
       "brand": {
         "displayName": "Serif product name",
         "purpose": "Home identity; bundled 600 weight."
       },
-      "title": {
-        "displayName": "Panel title",
-        "purpose": "Creation-panel heading."
-      },
       "body": {
         "displayName": "Introductory copy",
-        "purpose": "Supporting copy; maximum 40ch."
-      },
-      "label": {
-        "displayName": "Field label",
-        "purpose": "Title-field label."
+        "purpose": "14px supporting copy; line height 1.9, maximum 40ch."
       },
       "control": {
-        "displayName": "Compact control",
-        "purpose": "Compact text actions; no global minimum text-size rule is inferred. Loose tools separately use 12px regular sans with line height 1.7."
+        "displayName": "Practical control",
+        "purpose": "12px tools and quiet actions; source also uses 12px state, file, footer and disclosure copy."
       },
       "primary-action": {
-        "displayName": "Primary action",
-        "purpose": "Main assembly/reopen control."
+        "displayName": "Primary switch",
+        "purpose": "14px main assembly/pour action above the art; .04em tracking."
       }
     },
     "shadows": [
@@ -250,9 +228,14 @@
         "purpose": "Background and border transitions on enabled primary and rotation controls, background and color on loose tools; disclosure chevron transform."
       },
       {
+        "name": "pour",
+        "value": "2900ms; real bottle tip:115deg; projected-mouth Canvas2D stream",
+        "purpose": "Lift and uncork the bottle, drain packed sand into individually deposited native frame grains, then restore the flat frame resting pose."
+      },
+      {
         "name": "assembly",
-        "value": "2600ms; e=t*t*(3-2*t); 2500 temporary points",
-        "purpose": "Level-dependent smoothstep paths with arc and swirl. An upward clipping plane reveals the full-size packed sand from 28% to 95% progress, while the cap follows the fill height and profile radius."
+        "value": "2800ms; native per-grain collection; 1800 stream samples",
+        "purpose": "Gather current loose grains to the frame corner, feed the projected mouth, fill and recork the actual bottle, then restore its accepted resting pose."
       },
       {
         "name": "rotation-release",
@@ -262,7 +245,7 @@
       {
         "name": "reduced-motion",
         "value": "prefers-reduced-motion: reduce",
-        "purpose": "No CSS transitions/animations or sealed release inertia; assembly immediately reaches sealed state. Direct loose input remains available, swirl preview shortens to 180ms and explicit restore is immediate."
+        "purpose": "No CSS transitions/animations or sealed release inertia. Both transfer directions reach their destination immediately. Manual loose play remains available; swirl preview is 180ms and restore is immediate."
       },
       {
         "name": "loose-push",
@@ -312,7 +295,7 @@
         "value": "max-width:1100px"
       },
       {
-        "name": "single-column",
+        "name": "narrow",
         "value": "max-width:760px"
       },
       {
@@ -349,17 +332,17 @@
       {
         "name": "packed-sand-cap",
         "value": "256×256 color and tangent-normal CanvasTextures over #bda17a; seeded LCG:173; irregular hull sides:5–7; local stretch:.92–1.08 before full-shape rotation:0–2PI; tilted crown and bevel faces; two-pass grain pitches:2.2px fine,4.0px larger; size=pitch*(minimum+pow(rand,.7)*variation), pass minimum/variation:(.38,.24),(.4,.28); crown peak:size*(.32–.44); rim height:size*.035; crown inset:.48–.64; shade:.91–1.13; local-color base:.84; contact-shadow target:.55, coverage:.24, offset:(.28,.4), blur:.35; MeshStandardMaterial color:0xbebebe; normalScale:(.9,.9); roughness:.94; metalness:0; envMapIntensity:.14; map and normalMap wrapS:RepeatWrapping, anisotropy:4; no bumpMap; material dispose owns normalMap.dispose; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(level)",
-        "purpose": "A sand-colored top cap matches the packed body material, with the same compact fully rotated grain shapes, fine underpacking, lower crowns and per-face tangent normals at smaller texture pitches. It follows the clipping plane during assembly and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core. The cap has no per-grain mesh geometry or grain collisions."
-      },
-      {
-        "name": "assembly-grains",
-        "value": "2500 ShaderMaterial Points; transparent:false; depthWrite:true; point size clamped:1–4px; top-left highlight:.045",
-        "purpose": "Temporary flying grains visible from 8% to 97% of assembly progress; hidden in both settled loose and sealed presentations."
+        "purpose": "A sand-colored top cap matches the packed body material, with the same compact fully rotated grain shapes, fine underpacking, lower crowns and per-face tangent normals at smaller texture pitches. It follows the clipping plane during both transfer directions and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core. The cap has no per-grain mesh geometry or grain collisions."
       },
       {
         "name": "plinth",
         "value": "MeshStandardMaterial; color:0xcabc9f; roughness:.82; envMapIntensity:.24",
         "purpose": "Low cylindrical display base and shadow receiver."
+      },
+      {
+        "name": "mouth-grain-stream",
+        "value": "transparent Canvas2D overlay; DPR capped at 2; 1800 source-grain samples; cubic paths; warm bodies and top-left highlights; 130 supplemental pour grains",
+        "purpose": "Connect the projected mouth of the actual moving bottle to the displayed frame. Transient stream resources are cleared after transfer; no per-grain physics or collision simulation."
       }
     ],
     "provenance": {
@@ -368,6 +351,7 @@
         "src/app.ts",
         "src/scene.ts",
         "src/loose-sand.ts",
+        "src/sand-transfer.ts",
         "src/domain.ts",
         "src/main.ts",
         "src/assets/cat.png",
@@ -378,22 +362,22 @@
         "docs/architecture.md",
         "docs/visual-references.md"
       ],
-      "authority": "The user-provided cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs in docs/visual-references.md guide packed material, filled profile and perspective. The world remains code-led: direction seed 889eefe6, grounded candidate 5, personal display plinth. After finer compact grains replaced rice-like coarse shapes, the user accepted the bottle with “瓶子的效果可以了”. The warm sealed material, geometry, camera, glass, lighting and rotation are protected. The user then requested warm-only presentation and a framed flat loose painting. Bottle acceptance does not imply acceptance of the new loose painting.",
+      "authority": "The user-provided cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra references guide packed material, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance “瓶子的效果可以了” protects the warm sealed material, geometry, camera, glass, lighting and rotation. The latest explicit requests add bottle-to-frame pouring and frame-to-bottle linkage, remove naming and optimize the page UI. These requests authorize the changes without establishing acceptance of their new result.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
-      "notCanonized": "The build carries 8–11px ancillary text in several contexts. Those sizes are captured only where needed to reproduce actual snippets, not promoted into a universal legibility rule. No browser or visual verification was performed by this documentation pass.",
+      "notCanonized": "No new visual defects were adjudicated in this source-only documentation pass. The obsolete small-copy, naming and two-column records are removed because the built source changed; no source value was added to excuse a defect. No browser review or new finish-review disposition was performed.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
-      "reviewEvidence": "Fresh actual captures in .impeccable/review/framed-sand include desktop.png, mobile.png, user-590.png, push.png, swirl.png and bottle-desktop.png, bottle-mobile.png, bottle-user-590.png. The capture pass reported no overflow or browser errors at desktop:1440×900, mobile:390×844 and user-590:590×1293. Displayed native canvas sizes were 570×342, 286×171.594 and 486×291.594px respectively. Parent verification matched warm sealed front and turned PNGs exactly against accepted baseline 2cf32f9. This documentation pass did not reopen a browser or establish a new finish-review verdict or user acceptance of the framed painting."
+      "reviewEvidence": "Fresh capture inputs are in .impeccable/review/linked-sand: desktop, mobile, user-590, loose-desktop, loose-mobile, loose-user-590, pour-desktop, pour-mobile, pour-user-590, pack-desktop, pack-mobile and pack-user-590 PNGs. Parent verification reports exact warm sealed front and rotated PNG parity with accepted 8c2d986 / 2cf32f9 renderer baselines. This documentation pass checked source and the supplied capture references without reopening the browser or claiming user approval."
     },
     "camera": [
       {
-        "name": "stage-fit",
-        "value": "PerspectiveCamera fov:32; sealedDistance=max(9.4,8.5/aspect); looseDistance=max(9.4,1.5+11.03/aspect); loose elevation:.094; sealed elevation:.45",
-        "purpose": "Preserved aspect-aware sealed-bottle fit. The former looseDistance and .094 elevation remain as the established assembly start; they do not project the native loose canvas. The camera position is (0,.32+distance*elevation,distance), looking at (0,.32,0), covering glass, cork, sand, plinth and contact shadow."
+        "name": "sealed-stage-fit",
+        "value": "PerspectiveCamera fov:32; distance=max(9.4,8.5/aspect); elevation:.45; position:(0,.32+distance*.45,distance); lookAt:(0,.32,0)",
+        "purpose": "Accepted warm sealed-bottle fit, also held during both transfers while the real bottle is temporarily moved, scaled and tipped. The independent flat canvas never uses this projection."
       },
       {
-        "name": "assembly-fit",
-        "value": "blend=progress*progress*(3-2*progress); distance=looseDistance*(1-blend)+sealedDistance*blend; elevation=lerp(.094,.45,blend)",
-        "purpose": "Preserved smooth movement from the established assembly start fit to the elevated sealed-bottle fit. Resize reapplies the active scene fit; the independent loose canvas keeps its fixed bitmap."
+        "name": "loose-scene-fit",
+        "value": "distance=max(9.4,1.5+11.03/aspect); elevation:.094",
+        "purpose": "Residual hidden Three.js scene fit during settled loose play; it does not project or distort the visible native canvas."
       }
     ]
   },
@@ -402,9 +386,9 @@
       "name": "Bottle action",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Main assembly action; the live app changes its label with the bottle phase.",
+      "description": "The above-art primary switch. Ready labels are 倒出成画 and 装进瓶子; progress labels disable the same control.",
       "html": "<button class=\"ds-primary\" type=\"button\"><span>装进瓶子</span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button>",
-      "css": ".ds-primary{display:flex;align-items:center;justify-content:space-between;width:100%;height:51px;padding:0 18px;background:var(--clay);color:#fff8ed;border:0;border-radius:3px;font:400 14px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.08em;cursor:pointer;transition:background .15s}.ds-primary svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-primary:not(:disabled):hover{background:var(--clay-dark)}.ds-primary:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-primary:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-primary{height:54px;font-size:15px}}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
+      "css": ".ds-primary{display:flex;align-items:center;justify-content:space-between;width:168px;height:48px;padding:0 18px;background:var(--clay);color:#fff8ed;border:0;border-radius:3px;font:400 14px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.04em;cursor:pointer;transition:background .15s}.ds-primary svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-primary:not(:disabled):hover{background:var(--clay-dark)}.ds-primary:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-primary:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-primary{width:132px;padding:0 12px;font-size:14px}.ds-primary svg{width:17px;height:17px}}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
     },
     {
       "name": "Rotation action",
@@ -419,31 +403,23 @@
       "kind": "button",
       "refersTo": "button-text",
       "description": "Quiet reset and recovery actions.",
-      "html": "<button class=\"ds-text\" type=\"button\">换回示例，重新开始</button>",
-      "css": ".ds-text{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font:400 11px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted);cursor:pointer}.ds-text:hover{color:var(--clay)}.ds-text:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-text:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-text{font-size:12px}}"
+      "html": "<button class=\"ds-text\" type=\"button\">换回示例</button>",
+      "css": ".ds-text{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted);cursor:pointer}.ds-text:hover{color:var(--clay)}.ds-text:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-text:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-text{font-size:12px}}"
     },
     {
       "name": "Loose painting tools",
       "kind": "button",
       "refersTo": "loose-tool",
-      "description": "Joined push and swirl choices with explicit pressed state, plus an underlined restore action. Visible only during ready loose play.",
+      "description": "Joined push and swirl choices with explicit pressed state, plus restore; ready loose state uses the 64px band beneath the art.",
       "html": "<div class=\"ds-loose-tools\"><div class=\"ds-loose-options\"><button type=\"button\" class=\"ds-loose-tool\" aria-pressed=\"true\">拨沙</button><button type=\"button\" class=\"ds-loose-tool\" aria-pressed=\"false\">旋涡</button></div><button type=\"button\" class=\"ds-loose-restore\">聚回照片</button></div>",
-      "css": ".ds-loose-tools{display:flex;align-items:center;justify-content:space-between;gap:18px;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-loose-options{display:flex;align-items:center;border:1px solid #b8a68c;border-radius:3px;overflow:hidden}.ds-loose-tool{min-width:72px;min-height:44px;padding:9px 18px;background:transparent;color:inherit;border:0;font:400 12px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;cursor:pointer;transition:background .15s,color .15s}.ds-loose-tool+.ds-loose-tool{border-left:1px solid #b8a68c}.ds-loose-tool[aria-pressed=true]{background:#e0d0b7;color:#493a28}.ds-loose-tool:not(:disabled):hover{background:#e6d9c4}.ds-loose-tool:focus-visible{outline:2px solid var(--clay);outline-offset:-4px}.ds-loose-restore{min-height:44px;padding:8px 0;background:transparent;border:0;color:var(--muted);font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;cursor:pointer}.ds-loose-restore:hover{color:var(--clay)}.ds-loose-restore:focus-visible{outline:2px solid var(--clay);outline-offset:5px}.ds-loose-tool:disabled,.ds-loose-restore:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-loose-tools{gap:12px}.ds-loose-tool{min-width:68px;padding:9px 16px}}@media(prefers-reduced-motion:reduce){.ds-loose-tool{transition:none}}"
-    },
-    {
-      "name": "Bottle title field",
-      "kind": "input",
-      "refersTo": "input-title",
-      "description": "Named, single-line bottle title with a visible label.",
-      "html": "<div class=\"ds-title\"><label for=\"ds-bottle-title\">给这瓶回忆起个名字</label><input id=\"ds-bottle-title\" type=\"text\" placeholder=\"比如，那天的海\" autocomplete=\"off\"></div>",
-      "css": ".ds-title{display:flex;flex-direction:column;gap:9px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--ink)}.ds-title label{font-size:12px;font-weight:500;line-height:1.7}.ds-title input{width:100%;height:44px;padding:8px 11px;border:1px solid var(--line);border-radius:3px;background:#faf8f2;color:var(--ink);font:400 13px/1.8 -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;caret-color:var(--clay)}.ds-title input::placeholder{color:#746956}.ds-title input:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:760px){.ds-title label{font-size:13px}.ds-title input{height:48px;font-size:14px}}"
+      "css": ".ds-loose-tools{display:flex;align-items:center;justify-content:space-between;gap:18px;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-loose-options{display:flex;align-items:center;border:1px solid #b8a68c;border-radius:3px;overflow:hidden}.ds-loose-tool{min-width:72px;min-height:44px;padding:9px 18px;background:transparent;color:inherit;border:0;font:400 12px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;cursor:pointer;transition:background .15s,color .15s}.ds-loose-tool+.ds-loose-tool{border-left:1px solid #b8a68c}.ds-loose-tool[aria-pressed=true]{background:#e0d0b7;color:#493a28}.ds-loose-tool:not(:disabled):hover{background:#e6d9c4}.ds-loose-tool:focus-visible{outline:2px solid var(--clay);outline-offset:-4px}.ds-loose-restore{min-height:44px;padding:8px 0;background:transparent;border:0;color:var(--muted);font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;cursor:pointer}.ds-loose-restore:hover{color:var(--clay)}.ds-loose-restore:focus-visible{outline:2px solid var(--clay);outline-offset:5px}.ds-loose-tool:disabled,.ds-loose-restore:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-loose-tools{width:100%;gap:12px}.ds-loose-tool{min-width:68px;padding:9px 16px}}@media(prefers-reduced-motion:reduce){.ds-loose-tool{transition:none}}@media(max-width:370px){.ds-loose-tool{min-width:62px;padding-right:13px;padding-left:13px}}"
     },
     {
       "name": "Photo upload route",
       "kind": "input",
-      "description": "Underlined visible label for a visually hidden native file picker. The preview omits the user photo.",
-      "html": "<div class=\"ds-upload\"><label for=\"ds-photo\">选一张自己的照片<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5\"/></svg></label><input id=\"ds-photo\" type=\"file\" accept=\"image/jpeg,image/png,image/webp\"></div>",
-      "css": ".ds-upload{position:relative;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--ink)}.ds-upload label{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;cursor:pointer;border-bottom:1px solid #a48e71;line-height:1.5}.ds-upload svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-upload label:hover{color:var(--clay)}.ds-upload input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}.ds-upload:focus-within label{outline:2px solid var(--clay);outline-offset:3px}@media(max-width:760px){.ds-upload label{font-size:14px}}"
+      "description": "Cropped 44px photo preview beside a visible native-file-picker label; the preview snippet uses a neutral thumbnail placeholder.",
+      "html": "<div class=\"ds-photo-picker\"><span class=\"ds-photo-thumb\" aria-hidden=\"true\"></span><label class=\"ds-upload-label\" for=\"ds-photo\">换张照片<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5\"/></svg></label><input id=\"ds-photo\" type=\"file\" accept=\"image/jpeg,image/png,image/webp\" aria-label=\"换张照片\"></div>",
+      "css": ".ds-photo-picker{position:relative;display:flex;align-items:center;gap:12px;min-width:0;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-photo-thumb{display:block;width:44px;height:44px;border-radius:2px;background:#e7ddca;flex-shrink:0}.ds-upload-label{min-height:44px;display:flex;align-items:center;gap:12px;font-size:14px;line-height:1.5;cursor:pointer;white-space:nowrap}.ds-upload-label svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}.ds-upload-label:hover{color:var(--clay)}.ds-photo-picker input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip-path:inset(50%)}.ds-photo-picker:focus-within .ds-upload-label{outline:2px solid var(--clay);outline-offset:3px}@media(max-width:760px){.ds-photo-picker{gap:8px}.ds-upload-label{gap:7px}.ds-upload-label svg{width:14px;height:14px}}@media(max-width:370px){.ds-upload-label{gap:5px}.ds-upload-label svg{display:none}}"
     },
     {
       "name": "Home navigation",
@@ -451,15 +427,15 @@
       "refersTo": "brand-navigation",
       "description": "The single home route and bundled serif product identity.",
       "html": "<a class=\"ds-brand\" href=\"./\" aria-label=\"砂藏首页\"><svg class=\"ds-brand-mark\" viewBox=\"0 0 32 40\" aria-hidden=\"true\"><path d=\"M11 3h10v7l5 6v17a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V16l5-6V3Z\"/><path d=\"M7 25c6-7 12 6 18-1M7 29c7-5 12 5 18 0M12 7h8\"/></svg><span class=\"ds-brand-name\">砂藏</span><span class=\"ds-brand-english\">SANDKEEP</span></a>",
-      "css": ".ds-brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.ds-brand-mark{width:25px;height:33px;color:var(--clay);fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-brand-name{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.13em}.ds-brand-english{margin:4px 0 0 8px;font:600 10px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.22em;color:var(--muted)}.ds-brand:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:1100px){.ds-brand-english{display:none}}@media(max-width:760px){.ds-brand-name{font-size:25px}.ds-brand-mark{width:23px;height:30px}}"
+      "css": ".ds-brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.ds-brand-mark{width:25px;height:33px;color:var(--clay);fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-brand-name{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.13em}.ds-brand-english{margin:4px 0 0 8px;font:600 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.18em;color:var(--muted)}.ds-brand:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:1100px){.ds-brand-english{display:none}}@media(max-width:760px){.ds-brand-name{font-size:25px}.ds-brand-mark{width:23px;height:30px}}"
     },
     {
-      "name": "Bottle gallery caption",
+      "name": "Gallery control band",
       "kind": "card",
-      "refersTo": "bottle-gallery",
-      "description": "Flat stage surface and ruled caption; this snippet demonstrates the container, not the live WebGL bottle.",
-      "html": "<section class=\"ds-gallery\" aria-label=\"瓶子预览\"><div class=\"ds-gallery-caption\"><span>那天的海</span><button class=\"ds-gallery-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></section>",
-      "css": ".ds-gallery{background:var(--stage);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-gallery-caption{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 26px;padding:20px 0 23px;border-top:1px solid #d3c9b6}.ds-gallery-caption>span{font-size:16px;letter-spacing:.08em;line-height:1.6;overflow-wrap:anywhere}.ds-gallery-turn{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:inherit;border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-gallery-turn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-gallery-turn:hover{background:#e2d7c6;border-color:#a89576}.ds-gallery-turn:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:760px){.ds-gallery-caption{margin:0 18px;padding:15px 0 18px}.ds-gallery-caption>span{font-size:14px}}@media(prefers-reduced-motion:reduce){.ds-gallery-turn{transition:none}}"
+      "refersTo": "gallery-control-band",
+      "description": "The shared 64px ruled band. Rotation appears when sealed; loose tools or progress guidance replace it in the same footprint. Preview shows the sealed variant, without a live Three.js scene.",
+      "html": "<section class=\"ds-gallery\" aria-label=\"沙画工作台工具带\"><div class=\"ds-gallery-band\"><div class=\"ds-gallery-rotation\"><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button><span>左右拖动，转一转</span><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></div></section>",
+      "css": ".ds-gallery{background:var(--stage);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-gallery-band{height:64px;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 26px;padding:9px 0 10px;border-top:1px solid #d3c9b6}.ds-gallery-rotation{display:flex;align-items:center;gap:14px;flex-shrink:0;margin-inline:auto}.ds-gallery-rotation>span{font-size:12px;letter-spacing:.03em;color:var(--muted)}.ds-band-turn{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:inherit;border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-band-turn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}.ds-band-turn:hover{background:#e2d7c6;border-color:#a89576}.ds-band-turn:focus-visible{outline:2px solid var(--clay);outline-offset:5px}@media(max-width:760px){.ds-gallery-band{margin:0 18px;gap:12px}.ds-gallery-rotation{gap:12px}}@media(max-width:370px){.ds-gallery-band{margin:0 14px}}@media(prefers-reduced-motion:reduce){.ds-band-turn{transition:none}}"
     },
     {
       "name": "Flat sand picture frame",
@@ -468,16 +444,24 @@
       "description": "Front-facing brown rim and pale mat around a 5:3 native canvas. This empty frame preview shows dimensions and materials; it does not reproduce the live grain field.",
       "html": "<div class=\"ds-sand-frame\"><canvas class=\"ds-sand-canvas\" width=\"720\" height=\"432\" role=\"img\" aria-label=\"平面沙画画框尺寸预览\"></canvas></div>",
       "css": ".ds-sand-frame{width:min(100%,600px);padding:9px;border:6px solid #8b6d4b;background:#f3ead8;box-shadow:0 9px 18px #58432926}.ds-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair;image-rendering:pixelated}@media(max-width:760px){.ds-sand-frame{width:min(100%,556px);padding:7px;border-width:5px}}"
+    },
+    {
+      "name": "Advanced seam disclosure",
+      "kind": "input",
+      "description": "Quiet native disclosure below the art, exposing the clay-accented range only on request.",
+      "html": "<details class=\"ds-seam\"><summary>瓶身接缝<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></summary><div class=\"ds-seam-setting\"><label for=\"ds-seam-range\">用一道细沙纹连接照片两端</label><input id=\"ds-seam-range\" type=\"range\" min=\"0\" max=\"4\" step=\"0.2\" value=\"1.8\"><div class=\"ds-range-labels\"><span>无沙纹</span><span>宽一点</span></div></div></details>",
+      "css": ".ds-seam{width:300px;max-width:100%;font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted)}.ds-seam summary{min-height:44px;display:flex;align-items:center;gap:10px;width:fit-content;cursor:pointer;list-style:none}.ds-seam summary::-webkit-details-marker{display:none}.ds-seam svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;transition:transform .15s}.ds-seam[open] svg{transform:rotate(180deg)}.ds-seam-setting{padding:5px 0 12px}.ds-seam-setting label{font-size:12px;line-height:1.8}.ds-seam-setting input{width:100%;height:44px;accent-color:var(--clay);cursor:pointer;margin:4px 0 0}.ds-range-labels{display:flex;justify-content:space-between;font-size:12px}.ds-seam summary:focus-visible,.ds-seam input:focus-visible{outline:2px solid var(--clay);outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-seam svg{transition:none}}"
     }
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system is extracted from the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide dense packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with “瓶子的效果可以了”, then requested warm-only presentation and a framed flat loose painting. That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation; it does not imply acceptance of the new loose implementation. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the current rendering choices without claiming photorealism.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system is extracted from the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide dense packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with “瓶子的效果可以了”; that acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation. The latest request removes naming, simplifies the webpage and links both switches through the bottle mouth. It authorizes those changes without establishing user acceptance of the new interface or motion. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without claiming photorealism.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a photograph rendered as warm sand.",
       "Chinese serif display type paired with Chinese system sans controls.",
-      "A large object stage with compact controls and visibly separated states.",
-      "Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object."
+      "One workbench with photo selection and the primary switch above the art, and state-specific tools below.",
+      "Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.",
+      "A shared bottle-mouth connection carries grains between framed painting and finished bottle."
     ],
     "rules": [
       {
@@ -500,16 +484,18 @@
       "Do use the existing paper, ink, muted, line, clay and stage roles instead of introducing parallel surface colors.",
       "Do preserve the bundled serif headline and system sans control relationship.",
       "Do keep interactive targets at least the observed 44px height or diameter, with the existing clay focus treatment.",
-      "Do place the object before creation controls when the studio becomes one column.",
+      "Do place photo selection and the primary switch above the art, with the relevant rotation or sand tools directly below.",
+      "Do retain one scene height through each ready and transfer state at the active breakpoint.",
       "Do preserve the finished photograph while turning the bottle and respect reduced motion."
     ],
     "donts": [
       "Don't extend the picture frame’s soft shadow into ordinary controls or introduce rounded floating panels.",
-      "Don't reintroduce an original-color selector or use the photograph’s source colors as competing interface accents.",
+      "Don't reintroduce naming or an original-color selector into this workflow.",
       "Don't blur the loose field's hard pixel grains, top-left highlights or dark gaps.",
       "Don't copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.",
-      "Don't alter the accepted warm sealed renderer to tune loose play; the two presentations have separate rendering and input.",
-      "Don't treat bottle acceptance as approval of the new framed painting or claim photorealism from the reference photographs."
+      "Don't alter the accepted warm sealed renderer to tune loose play or transient transfer poses.",
+      "Don't replace the bottle-mouth grain connection with a whole-image crossfade.",
+      "Don't treat the earlier bottle acceptance as approval of the new interface or transfer sequence, or claim photorealism from the reference photographs."
     ]
   }
 }

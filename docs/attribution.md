@@ -12,7 +12,7 @@
 
 ## 字体
 
-`brand-serif-400.ttf` 与 `brand-serif-600.ttf` 是 Google Fonts 提供的 Noto Serif SC 字符子集，仅用于品牌和标题。字体遵循 SIL Open Font License 1.1，许可证保留在 `src/assets/OFL-NotoSerif.txt`。正文使用设备自带的中文无衬线字体。
+`brand-serif-400.ttf` 与 `brand-serif-600.ttf` 是 Google Fonts 提供的 Noto Serif SC 字符子集，仅用于品牌和标题。本轮扩充了新版标题“把照片，藏进一瓶沙。”所需字符，仍通过 Google Fonts 官方字符子集接口获取，随应用本地打包。字体遵循 SIL Open Font License 1.1，许可证保留在 `src/assets/OFL-NotoSerif.txt`。正文使用设备自带的中文无衬线字体。
 
 - [Noto Serif SC](https://fonts.google.com/specimen/Noto+Serif+SC)
 - [Noto CJK Serif 许可证](https://github.com/notofonts/noto-cjk/blob/main/Serif/LICENSE)

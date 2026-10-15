@@ -26,9 +26,11 @@ Desktop browsers and mobile browsers. An individual competition entry links to t
 
 - One photograph forms one complete image around the bottle.
 - A narrow decorative sand strip bridges the image seam.
-- Guided assembly preserves the finished image. Rotating the completed bottle does not scatter it.
+- Both presentation switches connect visibly through the bottle mouth. Pouring tips and uncorks the real bottle, deposits grains into the frame and empties the bottle. Assembly collects the current loose grains, streams them into the mouth, fills the bottle and closes the cork. Rotating the completed bottle does not scatter it.
 - Only the warm sand treatment is offered. Existing saved original-color records are read as warm without losing their photograph or title.
 - Disassembly shows a framed rectangular front-facing sand painting. Push and swirl leave marks until explicit restore. Loose input and rendering are isolated from the accepted bottle.
+- Naming is removed from the interface. Old record titles remain readable solely for storage compatibility; new drafts have an empty title.
+- A single workbench places photo selection and the primary switch above the art, with state-specific rotation or sand tools beneath it.
 - The latest bottle is saved locally on this browser.
 - Photos are processed locally, without uploading them to a server.
 - GitHub Pages hosts a static build. The application requires no backend or account.

@@ -34,7 +34,7 @@ try {
   await page.waitForTimeout(1000);
   await page.getByRole('button', { name: '向右旋转瓶子' }).click();
   await page.waitForTimeout(800);
-  await page.getByRole('button', { name: '拆开再玩', exact: true }).click();
+  await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await ready(page, 'loose');
   await page.screenshot({ path: path.join(media, '02-loose-sand.png') });
   const canvas = page.getByTestId('loose-sand');
@@ -53,7 +53,6 @@ try {
   await page.waitForTimeout(600);
   await page.getByRole('button', { name: '聚回照片', exact: true }).click();
   await page.waitForTimeout(1100);
-  await page.getByLabel('给这瓶回忆起个名字').fill('猫的午后');
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await ready(page);
   await page.waitForTimeout(700);

@@ -25,7 +25,7 @@ export function makeDraft(imageDataUrl: string, now = Date.now()): BottleDraft {
   const draft = parseDraft({
     schemaVersion: 1,
     imageDataUrl,
-    title: '猫的午后',
+    title: '',
     colorMode: 'warm',
     seamWidth: 0.018,
     createdAt: now,

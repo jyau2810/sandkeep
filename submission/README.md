@@ -19,7 +19,7 @@
 
 素材放在 [media/](media/README.md)，包含 4 张 PNG 和 1 段 MP4。依次上传 `01-cover.png`、`02-loose-sand.png`、`03-sand-swirl.png`、`04-mobile.png`、`05-demo.mp4`，第一张作为封面。
 
-正式页面已返回 HTTP 200，线上完成了导入照片、命名、拨沙、复原、装瓶、拖动旋转和刷新恢复检查，未捕获页面错误。部署记录见 [首次发布工作流](https://github.com/jyau2810/sandkeep/actions/runs/38737743442)。
+正式页面已返回 HTTP 200，线上完成了导入照片、双向倒沙、拨沙、复原、装瓶、拖动旋转和刷新恢复检查，未捕获页面错误。部署记录见 [首次发布工作流](https://github.com/jyau2810/sandkeep/actions/runs/38737743442)。
 
 ## 已核对的页面约束
 
