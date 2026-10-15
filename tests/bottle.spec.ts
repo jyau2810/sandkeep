@@ -3,7 +3,7 @@ import type { BottleDraft } from '../src/domain';
 
 async function openDemo(page: Page): Promise<void> {
   await page.goto('./');
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶', { timeout: 15000 });
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 15000 });
   await expect(page.getByRole('button', { name: '倒出成画', exact: true })).toBeEnabled();
   await page.waitForLoadState('networkidle');
 }
@@ -30,7 +30,7 @@ async function photoFile(page: Page, reversed = false): Promise<{ name: string; 
 
 async function uploadPhoto(page: Page, reversed = false): Promise<void> {
   await page.locator('#photo-input').setInputFiles(await photoFile(page, reversed));
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(page.getByRole('button', { name: '装进瓶子', exact: true })).toBeEnabled();
 }
 
@@ -74,6 +74,27 @@ async function flatPicture(page: Page): Promise<string> {
   return page.getByTestId('loose-sand').evaluate(node => (node as HTMLCanvasElement).toDataURL());
 }
 
+async function depositedPixels(page: Page, emptyPicture: string): Promise<number> {
+  return page.getByTestId('loose-sand').evaluate(async (node, empty) => {
+    const canvas = node as HTMLCanvasElement;
+    const baseline = new Image();
+    baseline.src = empty;
+    await baseline.decode();
+    const reference = document.createElement('canvas');
+    reference.width = canvas.width;
+    reference.height = canvas.height;
+    const context = reference.getContext('2d')!;
+    context.drawImage(baseline, 0, 0);
+    const before = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const after = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let changed = 0;
+    for (let i = 0; i < after.length; i += 4) {
+      if (before[i] !== after[i] || before[i + 1] !== after[i + 1] || before[i + 2] !== after[i + 2]) changed++;
+    }
+    return changed;
+  }, emptyPicture);
+}
+
 async function expectVisibleTransfer(page: Page): Promise<void> {
   const canvas = page.locator('canvas.sand-transfer-canvas');
   await expect(canvas).toBeVisible();
@@ -94,14 +115,17 @@ test('a personal photo becomes a warm bottle and survives reopening without a na
   await expect(thumbnail).toHaveJSProperty('naturalWidth', 512);
   const selectedPhoto = await thumbnail.getAttribute('src');
   await expect(page.getByRole('textbox')).toHaveCount(0);
+  await expect(page.locator('.header-note, .intro-copy, .stage-topline, .action-hint')).toHaveCount(0);
+  await expect(page.getByText('每一粒沙，都是照片里的一点颜色。', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '照片原色', exact: true })).toHaveCount(0);
   await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await expect(page.getByTestId('stage-state')).toHaveText('把这一刻，慢慢装好');
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶', { timeout: 8000 });
-  await expect(page.getByTestId('app-status')).toHaveText('已保存在这个浏览器，下次打开还能看见。');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'assembling');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 8000 });
+  await expect.poll(async () => (await latestBottle(page))?.colorMode).toBe('warm');
+  await expect(page.getByTestId('app-status')).toBeHidden();
   await page.reload();
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(page.getByRole('textbox')).toHaveCount(0);
   expect(await latestBottle(page)).toMatchObject({ colorMode: 'warm', imageDataUrl: selectedPhoto });
   await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeHidden();
@@ -114,7 +138,8 @@ test('a saved original-colour bottle reopens as warm sand without losing its pho
   await openDemo(page);
   await uploadPhoto(page);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await expect(page.getByTestId('app-status')).toHaveText('已保存在这个浏览器，下次打开还能看见。');
+  await expect.poll(async () => (await latestBottle(page))?.colorMode).toBe('warm');
+  await expect(page.getByTestId('app-status')).toBeHidden();
   const canvas = page.getByTestId('bottle-scene').locator('canvas.bottle-canvas');
   const warmPicture = await stablePicture(canvas);
   const original = { ...await latestBottle(page), colorMode: 'original' as const, title: '旧照片的回忆', createdAt: 1024 };
@@ -192,7 +217,7 @@ test('flat sand keeps brush marks through resizing and restores the exact photog
   await stablePicture(canvas);
   expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).not.toBe(initial);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(canvas).toBeHidden();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await expect(page.getByRole('button', { name: '拨沙', exact: true })).toHaveAttribute('aria-pressed', 'true');
@@ -204,7 +229,7 @@ test('horizontal drag and focused arrow keys change the visible bottle', async (
   await openDemo(page);
   await uploadPhoto(page);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   const stage = page.getByTestId('bottle-scene');
   const canvas = stage.locator('canvas.bottle-canvas');
   const front = await stablePicture(canvas);
@@ -220,7 +245,7 @@ test('horizontal drag and focused arrow keys change the visible bottle', async (
   await page.keyboard.press('ArrowRight');
   const keyboardTurned = await stablePicture(canvas);
   expect(keyboardTurned.equals(turned)).toBe(false);
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
 });
 
 test('bad and oversized uploads explain the problem and preserve the previous bottle', async ({ page }) => {
@@ -234,7 +259,7 @@ test('bad and oversized uploads explain the problem and preserve the previous bo
   await page.locator('#photo-input').setInputFiles({ name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(15 * 1024 * 1024 + 1) });
   await expect(page.getByRole('alert')).toHaveText('这张照片超过 15 MB，请换一张小一点的。');
   await expect(thumbnail).toHaveAttribute('src', originalPhoto!);
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'failure');
   await uploadPhoto(page);
   await expect(page.getByRole('alert')).toBeHidden();
   await expect(page.getByRole('textbox')).toHaveCount(0);
@@ -283,7 +308,7 @@ test.describe('a narrow touch screen', () => {
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => page.evaluate((start) => scrollY > start + 30, scrollBefore)).toBe(true);
     await page.getByRole('button', { name: '向右旋转瓶子' }).tap();
-    await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+    await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
     await session.detach();
   });
 
@@ -323,9 +348,9 @@ test('reduced motion still creates a bottle when browser storage is denied', asy
   await openDemo(page);
   await expect(page.getByTestId('app-status')).toHaveText('浏览器暂时无法读取本地收藏，你仍然可以制作瓶子。');
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶', { timeout: 1000 });
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 1000 });
   await expect(page.getByTestId('app-status')).toHaveText('浏览器未能保存这只瓶子，你仍然可以继续玩。');
   await expect(page.getByRole('button', { name: '向右旋转瓶子' })).toBeEnabled();
 });
@@ -351,8 +376,11 @@ test('sand visibly pours into the frame and leaves it again while repeated actio
   await expectVisibleTransfer(page);
   const halfPoured = await flatPicture(page);
   expect(halfPoured).not.toBe(emptyFrame);
-  await page.clock.runFor(1700);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  const firstDeposit = await depositedPixels(page, emptyFrame);
+  await page.clock.runFor(550);
+  expect(await depositedPixels(page, emptyFrame)).toBeGreaterThan(firstDeposit * 1.35);
+  await page.clock.runFor(1150);
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(stage).toHaveAttribute('aria-busy', 'false');
   await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
   const fullPainting = await flatPicture(page);
@@ -367,11 +395,11 @@ test('sand visibly pours into the frame and leaves it again while repeated actio
   await expectVisibleTransfer(page);
   expect(await flatPicture(page)).not.toBe(fullPainting);
   await page.clock.runFor(1800);
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeVisible();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await page.clock.runFor(3000);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   expect(await flatPicture(page)).toBe(fullPainting);
 });
 
@@ -384,7 +412,7 @@ test('a new photo interrupts either direction without an old animation taking ov
   await uploadPhoto(page);
   const firstPhoto = await page.getByAltText('当前照片预览').getAttribute('src');
   await page.clock.runFor(4000);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
   await expect(page.getByAltText('当前照片预览')).toHaveAttribute('src', firstPhoto!);
   await expect(page.locator('canvas.sand-transfer-canvas')).toBeHidden();
@@ -395,13 +423,13 @@ test('a new photo interrupts either direction without an old animation taking ov
   const replacementPhoto = await page.getByAltText('当前照片预览').getAttribute('src');
   expect(replacementPhoto).not.toBe(firstPhoto);
   await page.clock.runFor(4000);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(page.getByRole('button', { name: '装进瓶子', exact: true })).toBeEnabled();
   await expect(page.getByAltText('当前照片预览')).toHaveAttribute('src', replacementPhoto!);
   await expect(page.locator('canvas.sand-transfer-canvas')).toBeHidden();
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await page.clock.runFor(3100);
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect.poll(async () => (await latestBottle(page)).imageDataUrl).toBe(replacementPhoto);
 });
 
@@ -415,7 +443,7 @@ test('resizing during each transfer still returns a complete rectangular paintin
   await page.clock.runFor(700);
   await expectVisibleTransfer(page);
   await page.clock.runFor(1700);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(stage).toHaveCSS('height', '420px');
   const complete = await flatPicture(page);
   const flat = await page.getByTestId('loose-sand').boundingBox();
@@ -427,10 +455,10 @@ test('resizing during each transfer still returns a complete rectangular paintin
   await page.clock.runFor(600);
   await expectVisibleTransfer(page);
   await page.clock.runFor(1800);
-  await expect(page.getByTestId('stage-state')).toHaveText('回忆已装瓶');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await page.clock.runFor(3000);
-  await expect(page.getByTestId('stage-state')).toHaveText('先玩一会儿彩砂');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   expect(await flatPicture(page)).toBe(complete);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
 });

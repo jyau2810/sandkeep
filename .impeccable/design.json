@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T16:15:46.086036+00:00",
+  "generatedAt": "2026-10-15T16:44:53.796646+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -197,12 +197,12 @@
         "purpose": "Home identity; bundled 600 weight."
       },
       "body": {
-        "displayName": "Introductory copy",
-        "purpose": "14px supporting copy; line height 1.9, maximum 40ch."
+        "displayName": "Fallback guidance",
+        "purpose": "14px recovery guidance with line height 1.9. Upload and primary-action labels also use 14px."
       },
       "control": {
         "displayName": "Practical control",
-        "purpose": "12px tools and quiet actions; source also uses 12px state, file, footer and disclosure copy."
+        "purpose": "12px tools and quiet actions, file limits, disclosure copy and the single local-processing footer."
       },
       "primary-action": {
         "displayName": "Primary switch",
@@ -229,13 +229,13 @@
       },
       {
         "name": "pour",
-        "value": "2900ms; real bottle tip:115deg; projected-mouth Canvas2D stream",
-        "purpose": "Lift and uncork the bottle, drain packed sand into individually deposited native frame grains, then restore the flat frame resting pose."
+        "value": "2900ms; real bottle tip:115deg; transient 3D grain volume; shared mouth-crossing and landing schedule",
+        "purpose": "Uncork and tip the bottle, slide interior points toward the neck, stream them through the projected mouth, then land and roll frame grains downward and outward from a growing central deposit."
       },
       {
         "name": "assembly",
-        "value": "2800ms; native per-grain collection; 1800 stream samples",
-        "purpose": "Gather current loose grains to the frame corner, feed the projected mouth, fill and recork the actual bottle, then restore its accepted resting pose."
+        "value": "2800ms; per-grain actual brush positions; shared departure, mouth, land and settle times",
+        "purpose": "Remove grains from their current frame positions, route them to the projected mouth and accumulate interior points before restoring the accepted packed body, resting bottle pose and cork."
       },
       {
         "name": "rotation-release",
@@ -322,7 +322,7 @@
       {
         "name": "pixel-sand-field",
         "value": "native Canvas2D:720×432; seeded LCG:907; sample interval:1.9px; jitter:1.7px; 85% 2×2 grains, otherwise 1×1; image-rendering:pixelated; warm luminance palette; background seeded LCG:412",
-        "purpose": "Loose play only. Hard pixel grains carry photo-derived warm tonal structure, per-grain shade variation and a brighter top-left pixel over seeded brown gaps. The earliest cat demo guides this treatment. No WebGL texture or projected plane renders the loose painting."
+        "purpose": "Loose play uses hard pixel grains with photo-derived warm colors, per-grain shade and a brighter top-left pixel over seeded brown gaps. The earliest cat demo guides this treatment. The same grains receive immutable transfer routes from their actual brush positions to home positions. Pouring deposits at local impact points before downward and outward settling. No projected WebGL plane renders the flat painting."
       },
       {
         "name": "photo-mantle",
@@ -331,8 +331,8 @@
       },
       {
         "name": "packed-sand-cap",
-        "value": "256×256 color and tangent-normal CanvasTextures over #bda17a; seeded LCG:173; irregular hull sides:5–7; local stretch:.92–1.08 before full-shape rotation:0–2PI; tilted crown and bevel faces; two-pass grain pitches:2.2px fine,4.0px larger; size=pitch*(minimum+pow(rand,.7)*variation), pass minimum/variation:(.38,.24),(.4,.28); crown peak:size*(.32–.44); rim height:size*.035; crown inset:.48–.64; shade:.91–1.13; local-color base:.84; contact-shadow target:.55, coverage:.24, offset:(.28,.4), blur:.35; MeshStandardMaterial color:0xbebebe; normalScale:(.9,.9); roughness:.94; metalness:0; envMapIntensity:.14; map and normalMap wrapS:RepeatWrapping, anisotropy:4; no bumpMap; material dispose owns normalMap.dispose; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(level)",
-        "purpose": "A sand-colored top cap matches the packed body material, with the same compact fully rotated grain shapes, fine underpacking, lower crowns and per-face tangent normals at smaller texture pitches. It follows the clipping plane during both transfer directions and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core. The cap has no per-grain mesh geometry or grain collisions."
+        "value": "256×256 color and tangent-normal CanvasTextures over #bda17a; seeded LCG:173; irregular hull sides:5–7; local stretch:.92–1.08 before full-shape rotation:0–2PI; tilted crown and bevel faces; two-pass grain pitches:2.2px fine,4.0px larger; size=pitch*(minimum+pow(rand,.7)*variation), pass minimum/variation:(.38,.24),(.4,.28); crown peak:size*(.32–.44); rim height:size*.035; crown inset:.48–.64; shade:.91–1.13; local-color base:.84; contact-shadow target:.55, coverage:.24, offset:(.28,.4), blur:.35; MeshStandardMaterial color:0xbebebe; normalScale:(.9,.9); roughness:.94; metalness:0; envMapIntensity:.14; map and normalMap wrapS:RepeatWrapping, anisotropy:4; no bumpMap; material dispose owns normalMap.dispose; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(fillTop); y:2.10 at rest",
+        "purpose": "A sand-colored cap matches the accepted packed body, using compact fully rotated grain shapes, fine underpacking, lower crowns and tangent normals. It stays at y=2.10 and is hidden with the mantle while the transient point volume moves. It no longer rises or falls with a draining clipping plane. The opaque body and cap form the resting sand volume without a dark core."
       },
       {
         "name": "plinth",
@@ -340,9 +340,14 @@
         "purpose": "Low cylindrical display base and shadow receiver."
       },
       {
+        "name": "moving-sand-interior",
+        "value": "transient THREE.Points with ShaderMaterial; seeded angle, height and radius; compact shaded point sprites; dynamic positions; shared SandTransferPlan mouth times",
+        "purpose": "Replace the packed mantle and cap during flow. Pouring shifts and compresses remaining grains toward gravity in bottle coordinates, then slides each toward the neck. Assembly introduces grains at mouth crossings, drops and spreads them inside the bounded profile. Photo-derived warm colors follow the original bottle coordinates. The resting bottle uses its accepted packed renderer. This is an authored volume without collisions."
+      },
+      {
         "name": "mouth-grain-stream",
-        "value": "transparent Canvas2D overlay; DPR capped at 2; 1800 source-grain samples; cubic paths; warm bodies and top-left highlights; 130 supplemental pour grains",
-        "purpose": "Connect the projected mouth of the actual moving bottle to the displayed frame. Transient stream resources are cleared after transfer; no per-grain physics or collision simulation."
+        "value": "transparent Canvas2D overlay; DPR capped at 2; every twelfth route sampled from the native grain plan; cubic paths; warm bodies and top-left highlights",
+        "purpose": "Join the projected mouth of the actual moving bottle to the corresponding route impact point during pouring, or its actual brush position during assembly. Interior visibility and flat arrival use the same route times. Stream resources clear after transfer. Paths are authored; there is no grain collision simulation."
       }
     ],
     "provenance": {
@@ -351,6 +356,8 @@
         "src/app.ts",
         "src/scene.ts",
         "src/loose-sand.ts",
+        "src/sand-motion.ts",
+        "src/sand-reservoir.ts",
         "src/sand-transfer.ts",
         "src/domain.ts",
         "src/main.ts",
@@ -362,11 +369,11 @@
         "docs/architecture.md",
         "docs/visual-references.md"
       ],
-      "authority": "The user-provided cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra references guide packed material, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance “瓶子的效果可以了” protects the warm sealed material, geometry, camera, glass, lighting and rotation. The latest explicit requests add bottle-to-frame pouring and frame-to-bottle linkage, remove naming and optimize the page UI. These requests authorize the changes without establishing acceptance of their new result.",
+      "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and rotation. The user then rejected the clipped sand block and requested fine interior outflow, local landings and gradual spreading, plus improved reverse filling and removal of unnecessary copy. This correction is authorized but not user-accepted. An internal review does not establish user acceptance.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
-      "notCanonized": "No new visual defects were adjudicated in this source-only documentation pass. The obsolete small-copy, naming and two-column records are removed because the built source changed; no source value was added to excuse a defect. No browser review or new finish-review disposition was performed.",
+      "notCanonized": "The prior clipped photographic plug and broad frame reveal were explicitly rejected by the user and are not design rules. Decorative slogans, repeated instructions, stage narration and permanent save-success copy are removed in source. This source-only documentation pass does not adjudicate the new motion or report render parity.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
-      "reviewEvidence": "Fresh capture inputs are in .impeccable/review/linked-sand: desktop, mobile, user-590, loose-desktop, loose-mobile, loose-user-590, pour-desktop, pour-mobile, pour-user-590, pack-desktop, pack-mobile and pack-user-590 PNGs. Parent verification reports exact warm sealed front and rotated PNG parity with accepted 8c2d986 / 2cf32f9 renderer baselines. This documentation pass checked source and the supplied capture references without reopening the browser or claiming user approval."
+      "reviewEvidence": "The earlier .impeccable/review/linked-sand captures record the rejected motion and do not validate this correction. Static renderer baselines remain 8c2d986 / 2cf32f9, with 631ad5f recording the pre-correction implementation. This pass checked source without a browser, new finish disposition or user acceptance."
     },
     "camera": [
       {
@@ -433,8 +440,8 @@
       "name": "Gallery control band",
       "kind": "card",
       "refersTo": "gallery-control-band",
-      "description": "The shared 64px ruled band. Rotation appears when sealed; loose tools or progress guidance replace it in the same footprint. Preview shows the sealed variant, without a live Three.js scene.",
-      "html": "<section class=\"ds-gallery\" aria-label=\"沙画工作台工具带\"><div class=\"ds-gallery-band\"><div class=\"ds-gallery-rotation\"><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button><span>左右拖动，转一转</span><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></div></section>",
+      "description": "The stable 64px ruled band holds rotation when sealed or loose tools when flat. It stays empty during transfers; the primary button labels progress. This preview shows the sealed variant without a live Three.js scene.",
+      "html": "<section class=\"ds-gallery\" aria-label=\"沙画工作台工具带\"><div class=\"ds-gallery-band\"><div class=\"ds-gallery-rotation\"><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button><span>拖动旋转</span><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></div></section>",
       "css": ".ds-gallery{background:var(--stage);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-gallery-band{height:64px;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 26px;padding:9px 0 10px;border-top:1px solid #d3c9b6}.ds-gallery-rotation{display:flex;align-items:center;gap:14px;flex-shrink:0;margin-inline:auto}.ds-gallery-rotation>span{font-size:12px;letter-spacing:.03em;color:var(--muted)}.ds-band-turn{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:inherit;border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-band-turn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}.ds-band-turn:hover{background:#e2d7c6;border-color:#a89576}.ds-band-turn:focus-visible{outline:2px solid var(--clay);outline-offset:5px}@media(max-width:760px){.ds-gallery-band{margin:0 18px;gap:12px}.ds-gallery-rotation{gap:12px}}@media(max-width:370px){.ds-gallery-band{margin:0 14px}}@media(prefers-reduced-motion:reduce){.ds-band-turn{transition:none}}"
     },
     {
@@ -455,13 +462,13 @@
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system is extracted from the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide dense packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with “瓶子的效果可以了”; that acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation. The latest request removes naming, simplifies the webpage and links both switches through the bottle mouth. It authorizes those changes without establishing user acceptance of the new interface or motion. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without claiming photorealism.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with \"瓶子的效果可以了\". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.\n\nThe user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. The correction uses a temporary 3D grain volume and one route schedule across the interior, stream and flat painting. Decorative and repeated copy is removed. These changes have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a photograph rendered as warm sand.",
       "Chinese serif display type paired with Chinese system sans controls.",
       "One workbench with photo selection and the primary switch above the art, and state-specific tools below.",
       "Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.",
-      "A shared bottle-mouth connection carries grains between framed painting and finished bottle."
+      "A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame."
     ],
     "rules": [
       {
@@ -494,7 +501,7 @@
       "Don't blur the loose field's hard pixel grains, top-left highlights or dark gaps.",
       "Don't copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.",
       "Don't alter the accepted warm sealed renderer to tune loose play or transient transfer poses.",
-      "Don't replace the bottle-mouth grain connection with a whole-image crossfade.",
+      "Don't drain a clipped photographic block or reveal the whole frame independently of grain landings.",
       "Don't treat the earlier bottle acceptance as approval of the new interface or transfer sequence, or claim photorealism from the reference photographs."
     ]
   }

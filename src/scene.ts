@@ -2,8 +2,10 @@ import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import studioUrl from './assets/studio-small-09.hdr?url';
 import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from './domain';
-import { createLooseSand, type LooseSand, type SandTransferGrain, type SandTransferKind } from './loose-sand';
+import { createLooseSand, type LooseSand } from './loose-sand';
 import { createSandStream } from './sand-transfer';
+import { createSandReservoir } from './sand-reservoir';
+import type { SandTransferKind, SandTransferPlan } from './sand-motion';
 
 export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
@@ -22,13 +24,14 @@ type Content = {
   mantle: THREE.Mesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
   cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshStandardMaterial>;
   fillPlane: THREE.Plane;
+  reservoir: ReturnType<typeof createSandReservoir>;
   source: HTMLCanvasElement;
   group: THREE.Group;
 };
 type Transfer = {
   kind: SandTransferKind;
   sourceYaw: number;
-  grains: readonly SandTransferGrain[];
+  plan: SandTransferPlan;
   started: number;
   promise: Promise<SceneResult>;
   resolve: (result: SceneResult) => void;
@@ -513,6 +516,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   function releaseContent(value: Content): void {
     bottle.remove(value.group);
     value.loose.dispose();
+    value.reservoir.dispose();
     for (const mesh of [value.mantle, value.cap]) {
       mesh.geometry.dispose();
       mesh.material.map?.dispose();
@@ -528,6 +532,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     vessel.visible = plinth.visible = shadow.visible = next === 'sealed';
     if (!content) return;
     content.loose.setActive(next === 'loose' && !disposed && !contextLost);
+    content.reservoir.reset();
     content.mantle.visible = content.cap.visible = next === 'sealed';
     if (next === 'sealed') {
       content.fillPlane.normal.set(0, -1, 0);
@@ -556,6 +561,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     stream.clear();
     delete host.dataset.transfer;
     if (!content) return;
+    content.reservoir.reset();
     const frame = content.loose.element.firstElementChild as HTMLElement;
     frame.style.transform = frame.style.transformOrigin = frame.style.opacity = '';
     content.fillPlane.normal.set(0, -1, 0);
@@ -603,7 +609,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     content.mantle.visible = content.cap.visible = true;
     bottle.rotation.y = current.sourceYaw;
     let flow: number;
-    let fill: number;
     if (current.kind === 'pour') {
       plinth.visible = shadow.visible = progress < 0.16;
       plinth.scale.setScalar(Math.max(0.001, 1 - smooth((progress - 0.02) / 0.14)));
@@ -621,7 +626,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       corkBevel.position.y = 2.595 + uncork * 0.9;
       corkMesh.visible = corkBevel.visible = progress < 0.18;
       flow = clamp((progress - 0.27) / 0.59);
-      fill = 1 - flow;
       const settle = smooth((progress - 0.82) / 0.18);
       frame.style.transformOrigin = '50% 100%';
       frame.style.transform = `translateY(${(1 - settle) * 18}px) scale(${0.77 + settle * 0.23})`;
@@ -634,7 +638,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       bottle.scale.setScalar(THREE.MathUtils.lerp(0.43, 1, dock));
       bottle.rotation.z = 0;
       flow = clamp((progress - 0.12) / 0.66);
-      fill = clamp((flow - 0.16) / 0.84);
       const gather = smooth(progress / 0.18);
       const leave = smooth((progress - 0.78) / 0.15);
       frame.style.transformOrigin = '50% 100%';
@@ -651,18 +654,17 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     }
     content.loose.transferProgress(flow);
     bottle.updateMatrixWorld(true);
-    const level = sandBase + (fillTop - sandBase) * Math.max(0.0001, fill);
-    content.fillPlane.set(new THREE.Vector3(0, -1, 0), level).applyMatrix4(bottle.matrixWorld);
-    content.cap.position.y = level;
-    content.cap.scale.setScalar(sandRadiusAt(level));
-    content.mantle.visible = content.cap.visible = fill > 0.0005;
+    const movingSand = current.kind === 'pour' ? progress > 0.11 : flow < 0.999;
+    content.mantle.visible = content.cap.visible = !movingSand;
+    if (movingSand) content.reservoir.draw(current.plan, flow, current.kind === 'pour' ? smooth((progress - 0.04) / 0.25) : 0, height * renderer.getPixelRatio());
+    else content.reservoir.reset();
     const mouth = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.22, 0)));
     const neck = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.62, 0)));
     const length = Math.hypot(neck.x - mouth.x, neck.y - mouth.y) || 1;
     const direction = { x: (neck.x - mouth.x) / length, y: (neck.y - mouth.y) / length };
     const hostRect = host.getBoundingClientRect();
     const sandRect = content.loose.element.querySelector('canvas')!.getBoundingClientRect();
-    if (flow > 0 && flow < 1) stream.draw(current.kind, flow, mouth, direction, { left: sandRect.left - hostRect.left, top: sandRect.top - hostRect.top, width: sandRect.width, height: sandRect.height }, current.grains);
+    if (flow > 0 && flow < 1) stream.draw(current.plan, flow, mouth, direction, { left: sandRect.left - hostRect.left, top: sandRect.top - hostRect.top, width: sandRect.width, height: sandRect.height });
     else stream.clear();
   }
 
@@ -742,8 +744,10 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     group.add(mantle, cap);
     const looseSource = photoCanvas(source, 720, 432);
     const loose = createLooseSand(looseSource, options.reducedMotion);
+    const reservoir = createSandReservoir(looseSource, sandRadiusAt);
+    group.add(reservoir.object);
     looseSource.width = looseSource.height = 0;
-    return { draft, loose, mantle, cap, fillPlane, source, group };
+    return { draft, loose, mantle, cap, fillPlane, reservoir, source, group };
   }
 
   async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
@@ -795,8 +799,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const promise = new Promise<SceneResult>((done) => { resolve = done; });
     const abort = () => finishTransfer('cancelled');
     const timeout = setTimeout(() => finishTransfer('completed'), transferDuration[kind] + 80);
-    const grains = content.loose.beginTransfer(kind);
-    transfer = { kind, sourceYaw: bottle.rotation.y, grains, started: performance.now(), promise, resolve, timeout, signal, abort };
+    const plan = content.loose.beginTransfer(kind);
+    transfer = { kind, sourceYaw: bottle.rotation.y, plan, started: performance.now(), promise, resolve, timeout, signal, abort };
     yawVelocity = 0;
     if (gesture && canvas.hasPointerCapture(gesture.id)) canvas.releasePointerCapture(gesture.id);
     gesture = null;

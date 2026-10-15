@@ -1,16 +1,14 @@
-import type { SandTransferGrain, SandTransferKind } from './loose-sand';
+import { sandNoise, unit, type SandTransferPlan } from './sand-motion';
 
 type Point = Readonly<{ x: number; y: number }>;
 type TransferFrame = Readonly<{ left: number; top: number; width: number; height: number }>;
 export type SandStream = {
   element: HTMLCanvasElement;
-  draw(kind: SandTransferKind, progress: number, mouth: Point, direction: Point, frame: TransferFrame, grains: readonly SandTransferGrain[]): void;
+  draw(plan: SandTransferPlan, progress: number, mouth: Point, direction: Point, frame: TransferFrame): void;
   clear(): void;
   dispose(): void;
 };
 
-const mix = (a: Point, b: Point, t: number): Point => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-const random = (seed: number) => { const n = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return n - Math.floor(n); };
 const curve = (a: Point, b: Point, c: Point, d: Point, t: number): Point => {
   const s = 1 - t;
   return { x: s * s * s * a.x + 3 * s * s * t * b.x + 3 * s * t * t * c.x + t * t * t * d.x, y: s * s * s * a.y + 3 * s * s * t * b.y + 3 * s * t * t * c.y + t * t * t * d.y };
@@ -28,22 +26,21 @@ export function createSandStream(host: HTMLElement): SandStream {
   let bitmapWidth = 0;
   let bitmapHeight = 0;
 
-  function grain(point: Point, color: number, size: number, alpha = 1): void {
+  function grain(point: Point, color: number, size: number): void {
     const r = color & 255;
     const g = (color >>> 8) & 255;
     const b = (color >>> 16) & 255;
-    context!.globalAlpha = alpha;
     context!.fillStyle = `rgb(${r} ${g} ${b})`;
     context!.fillRect(point.x, point.y, size, size);
     if (size > 1.05) {
-      context!.fillStyle = `rgb(${Math.min(255, r + 29)} ${Math.min(255, g + 25)} ${Math.min(255, b + 18)})`;
-      context!.fillRect(point.x, point.y, size * 0.48, size * 0.42);
+      context!.fillStyle = `rgb(${Math.min(255, r + 24)} ${Math.min(255, g + 20)} ${Math.min(255, b + 16)})`;
+      context!.fillRect(point.x, point.y, size * 0.45, size * 0.4);
     }
   }
 
   return {
     element,
-    draw(kind, progress, mouth, direction, frame, grains): void {
+    draw(plan, progress, mouth, direction, frame): void {
       const rect = host.getBoundingClientRect();
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const nextWidth = Math.round(rect.width * ratio);
@@ -55,50 +52,32 @@ export function createSandStream(host: HTMLElement): SandStream {
       context!.setTransform(ratio, 0, 0, ratio, 0, 0);
       context!.clearRect(0, 0, rect.width, rect.height);
       element.hidden = false;
-      const collect = { x: frame.left + frame.width * 0.88, y: frame.top + frame.height * 0.10 };
-      const landing = { x: frame.left + frame.width * (0.28 + 0.35 * Math.sin(progress * Math.PI)), y: frame.top + frame.height * (0.16 + 0.70 * progress) };
-      const outside = { x: mouth.x + direction.x * 32, y: mouth.y + direction.y * 32 };
-      for (let i = 0; i < grains.length; i++) {
-        const sample = grains[i];
+      for (let index = 0; index < plan.samples.length; index++) {
+        const route = plan.samples[index];
         let point: Point;
-        if (kind === 'assemble') {
-          const t = (progress - 0.17 - sample.rank * 0.70) / 0.12;
+        if (plan.kind === 'pour') {
+          const t = (progress - route.mouth) / (route.land - route.mouth);
           if (t <= 0 || t >= 1) continue;
-          const origin = { x: collect.x + (random(i + 1) - 0.5) * 5, y: collect.y + (random(i + 45) - 0.5) * 3 };
-          point = curve(origin, { x: origin.x + rect.width * 0.08, y: origin.y - rect.height * 0.25 }, outside, mouth, t);
+          const target = { x: frame.left + route.impactX * frame.width, y: frame.top + route.impactY * frame.height };
+          const spread = (sandNoise(index + 191) - 0.5) * (1.2 + t * 3);
+          const outward = { x: mouth.x + direction.x * 19, y: mouth.y + direction.y * 19 };
+          point = curve(mouth, outward, { x: target.x, y: mouth.y + Math.max(18, target.y - mouth.y) * 0.32 }, target, t);
+          point = { x: point.x + spread, y: point.y };
         } else {
-          const t = (progress - sample.rank * 0.79) / 0.20;
+          const t = (progress - route.depart) / (route.mouth - route.depart);
           if (t <= 0 || t >= 1) continue;
-          const target = { x: frame.left + sample.homeX * frame.width, y: frame.top + sample.homeY * frame.height };
-          const funnel = { x: landing.x + (random(i) - 0.5) * 8, y: landing.y };
-          if (t < 0.72) point = curve(mouth, outside, { x: funnel.x, y: funnel.y - frame.height * 0.20 }, funnel, t / 0.72);
-          else {
-            const local = (t - 0.72) / 0.28;
-            point = mix(funnel, target, local);
-            point = { x: point.x, y: point.y - Math.sin(local * Math.PI) * (8 + random(i + 77) * 12) };
-          }
+          const origin = { x: frame.left + route.startX * frame.width, y: frame.top + route.startY * frame.height };
+          const outside = { x: mouth.x + direction.x * 17, y: mouth.y + direction.y * 17 };
+          point = curve(origin, { x: origin.x + (mouth.x - origin.x) * 0.35, y: origin.y - Math.min(82, rect.height * 0.19) }, outside, mouth, unit(t));
         }
-        grain(point, sample.color, 0.75 + random(i + 933) * 0.85);
+        grain(point, route.color, 0.72 + sandNoise(index + 933) * 0.72);
       }
-      if (progress > 0.025 && progress < 0.97 && kind === 'pour') {
-        const strength = Math.min(1, progress * 18, (1 - progress) * 18);
-        for (let i = 0; i < 130; i++) {
-          const t = (random(i + 161) + progress * 5.3) % 1;
-          const point = curve(mouth, outside, { x: landing.x, y: landing.y - frame.height * 0.2 }, landing, t);
-          const spread = 1.5 + t * 3.5;
-          grain({ x: point.x + (random(i + 923) - 0.5) * spread, y: point.y + (random(i + 703) - 0.5) * spread }, grains[i % grains.length].color, 0.8 + random(i + 413) * 0.8, strength);
-        }
-      }
-      context!.globalAlpha = 1;
     },
     clear(): void {
       context!.setTransform(1, 0, 0, 1, 0, 0);
       context!.clearRect(0, 0, element.width, element.height);
       element.hidden = true;
     },
-    dispose(): void {
-      element.remove();
-      element.width = element.height = 0;
-    },
+    dispose(): void { element.remove(); element.width = element.height = 0; },
   };
 }

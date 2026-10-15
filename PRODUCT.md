@@ -30,7 +30,7 @@ Desktop browsers and mobile browsers. An individual competition entry links to t
 - Only the warm sand treatment is offered. Existing saved original-color records are read as warm without losing their photograph or title.
 - Disassembly shows a framed rectangular front-facing sand painting. Push and swirl leave marks until explicit restore. Loose input and rendering are isolated from the accepted bottle.
 - Naming is removed from the interface. Old record titles remain readable solely for storage compatibility; new drafts have an empty title.
-- A single workbench places photo selection and the primary switch above the art, with state-specific rotation or sand tools beneath it.
+- A single workbench places photo selection and the primary switch above the art, with state-specific rotation or sand tools beneath it. Decorative slogans, repeated instructions, stage narration and permanent save-success text are removed. Necessary actions, errors, upload limits and one local-processing statement remain.
 - The latest bottle is saved locally on this browser.
 - Photos are processed locally, without uploading them to a server.
 - GitHub Pages hosts a static build. The application requires no backend or account.
@@ -52,3 +52,7 @@ The accepted interactive experiment used a local illustration and approximately 
 - Prefer a small number of finished interactions.
 - Keep personal images on the user's device.
 - Preserve the completed sand picture while it is being viewed.
+
+## Latest motion correction
+
+The user rejected the clipped photographic plug during pouring. Moving sand must leave the interior as fine grains, cross the bottle mouth, fall into the frame and spread gradually from local deposits. Assembly must also show grains entering and accumulating. This request does not reopen the accepted resting bottle material. A new motion implementation is not user-accepted merely because tests or an internal review pass.

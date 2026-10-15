@@ -1,14 +1,12 @@
 import type { LooseTool } from './domain';
-
-export type SandTransferKind = 'assemble' | 'pour';
-export type SandTransferGrain = Readonly<{ homeX: number; homeY: number; rank: number; color: number }>;
+import { createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export type LooseSand = {
   element: HTMLDivElement;
   setActive(active: boolean): void;
   setTool(tool: LooseTool): void;
   restore(): void;
-  beginTransfer(kind: SandTransferKind): readonly SandTransferGrain[];
+  beginTransfer(kind: SandTransferKind): SandTransferPlan;
   transferProgress(progress: number): void;
   finishTransfer(completed: boolean): void;
   dispose(): void;
@@ -104,11 +102,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   let disposed = false;
   let pausedAt: number | null = null;
   let moving = false;
-  let transfer: { kind: SandTransferKind; progress: number } | null = null;
-  const transferRanks = grains.map((grain, index) => {
-    const noise = Math.sin(index * 127.1 + 311.7) * 43758.5453;
-    return clamp((1 - grain.hy / height) * 0.6 + (noise - Math.floor(noise)) * 0.4, 0.001, 0.999);
-  });
+  let transfer: { plan: SandTransferPlan; progress: number } | null = null;
 
   function paint(): void {
     pixels.set(background);
@@ -116,18 +110,23 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       const grain = grains[i];
       let px = grain.x;
       let py = grain.y;
-      let size = grain.size;
-      if (transfer?.kind === 'pour') {
-        if (transfer.progress < 0.20 + transferRanks[i] * 0.79) continue;
-        px = grain.hx;
-        py = grain.hy;
-      } else if (transfer?.kind === 'assemble') {
-        const t = clamp((transfer.progress - transferRanks[i] * 0.70) / 0.17, 0, 1);
-        if (t >= 1) continue;
-        const ease = t * t;
-        px += (width * 0.88 - px) * ease;
-        py += (height * 0.10 - py) * ease - Math.sin(t * Math.PI) * 16;
-        if (t > 0.45) size = 1;
+      const size = grain.size;
+      if (transfer) {
+        const route = transfer.plan.grains[i];
+        if (transfer.plan.kind === 'pour') {
+          if (transfer.progress < route.land) continue;
+          const t = unit((transfer.progress - route.land) / (route.settle - route.land));
+          const settle = eased(t);
+          px = (route.impactX + (route.homeX - route.impactX) * settle) * width;
+          py = (route.impactY + (route.homeY - route.impactY) * settle) * height;
+          px += Math.sin(t * Math.PI * 3 + sandNoise(i + 53) * 8) * 9 * t * (1 - t);
+          py -= Math.sin(t * Math.PI * 2) * (1 - t) * (0.6 + sandNoise(i + 8) * 1.1);
+        } else {
+          if (transfer.progress >= route.depart) continue;
+          const t = unit((transfer.progress - route.depart + 0.035) / 0.035);
+          px += Math.sin(t * Math.PI) * (sandNoise(i + 53) - 0.5) * 3;
+          py += Math.sin(t * Math.PI) * 2;
+        }
       }
       const x = px | 0;
       const y = py | 0;
@@ -335,19 +334,14 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       if (reducedMotion) paint();
       else wake();
     },
-    beginTransfer(kind): readonly SandTransferGrain[] {
+    beginTransfer(kind): SandTransferPlan {
       active = false;
       syncActivity();
-      transfer = { kind, progress: 0 };
+      const plan = createTransferPlan(kind, grains);
+      transfer = { plan, progress: 0 };
       element.hidden = false;
       paint();
-      const samples: SandTransferGrain[] = [];
-      for (let i = 0; i < 1800; i++) {
-        const index = Math.min(grains.length - 1, Math.floor(i / 1800 * grains.length));
-        const grain = grains[index];
-        samples.push({ homeX: grain.hx / width, homeY: grain.hy / height, rank: transferRanks[index], color: grain.color });
-      }
-      return samples;
+      return plan;
     },
     transferProgress(progress): void {
       if (!transfer || disposed) return;

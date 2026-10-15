@@ -103,7 +103,7 @@ components:
 
 # Design System: 砂藏 / Sandkeep
 
-<!-- Extracted from src/styles.css, src/app.ts, src/scene.ts, src/loose-sand.ts and src/sand-transfer.ts. PRODUCT.md and .impeccable/{surface,quality-bar}.md establish the implementation context. -->
+<!-- Extracted from src/styles.css, src/app.ts, src/scene.ts, src/loose-sand.ts, src/sand-motion.ts, src/sand-reservoir.ts and src/sand-transfer.ts. PRODUCT.md and .impeccable/{surface,quality-bar}.md establish the implementation context. -->
 
 ## Overview
 
@@ -111,7 +111,9 @@ components:
 
 A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.
 
-This system is extracted from the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide dense packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with “瓶子的效果可以了”; that acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation. The latest request removes naming, simplifies the webpage and links both switches through the bottle mouth. It authorizes those changes without establishing user acceptance of the new interface or motion. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without claiming photorealism.
+This system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with "瓶子的效果可以了". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.
+
+The user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. The correction uses a temporary 3D grain volume and one route schedule across the interior, stream and flat painting. Decorative and repeated copy is removed. These changes have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.
 
 **Key Characteristics:**
 
@@ -119,7 +121,7 @@ This system is extracted from the built application. The user-provided cat grain
 - Chinese serif display type paired with Chinese system sans controls.
 - One workbench with photo selection and the primary switch above the art, and state-specific tools below.
 - Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.
-- A shared bottle-mouth connection carries grains between framed painting and finished bottle.
+- A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame.
 
 ## Colors
 
@@ -150,14 +152,14 @@ The palette is warm and low in chroma, leaving the warm sand image visually prom
 
 **Body Font:** the platform and Chinese sans stack recorded in frontmatter.
 
-The serif gives the product name and main headline a quiet, personal character. Sans type carries practical choices, instructions and state changes. The compact introduction keeps the art close to the first actions.
+The serif gives the product name and main headline a quiet, personal character. Sans type carries actions, upload guidance and errors. One headline remains above the workbench; the decorative header note and explanatory introduction are removed.
 
 ### Hierarchy
 
 - **Display:** the main headline is (36px), regular, with line height (1.5) and tight tracking.
 - **Brand:** the product wordmark is (27px), semibold, with open tracking.
-- **Body:** introductory copy is (14px), regular, with line height (1.9) and maximum width (40ch). Upload and primary-action labels also use (14px).
-- **Control:** tools, text actions, state labels, file guidance, disclosure copy and footer use (12px). Source line heights vary with their content, including (1.5), (1.7), (1.8) and (1.9); the control role records the tool treatment.
+- **Body:** fallback guidance is (14px), regular, with line height (1.9). Upload and primary-action labels also use (14px).
+- **Control:** tools, text actions, file guidance, disclosure copy and the single privacy footer use (12px). Source line heights vary with their content, including (1.5), (1.7) and (1.8); the control role records the tool treatment.
 - **Primary action:** (14px) regular sans with (.04em) tracking.
 
 At widths up to (760px), the headline becomes (28px) with line height (1.6), and the brand becomes (25px). Practical copy remains at least (12px); upload and main-action labels remain (14px). There is no title field or creation-panel heading.
@@ -166,13 +168,13 @@ At widths up to (760px), the headline becomes (28px) with line height (1.6), and
 
 ## Layout
 
-The page is centered within a maximum width of (1224px), with base horizontal padding of (48px). Its ruled header is (80px) high. The introduction sits (32px) below it and (25px) above one full-width workbench. The headline and short explanation share an aligned row on wide screens. The workbench toolbar places the photo thumbnail and upload route on the left and a (168px × 48px) primary switch on the right; file guidance sits below the photo route. There is no naming field or detached creation column.
+The page is centered within a maximum width of (1224px), with base horizontal padding of (48px). Its ruled header is (80px) high. The headline sits (32px) below it and (25px) above one full-width workbench. The workbench toolbar places the photo thumbnail and upload route on the left and a (168px × 48px) primary switch on the right; file guidance sits below the photo route. There is no naming field or detached creation column.
 
-The art has a stable (460px) scene host and a ruled (64px) tool band beneath it. The same host height applies to sealed, loose, pouring and assembling states, preventing a layout jump during transfer. Rotation or loose tools occupy that shared band according to the ready state. Transition guidance occupies it while controls are disabled. Advanced seam settings and “换回示例” sit below the workbench; privacy and local-save guidance sit in the footer.
+The art has a stable (460px) scene host and a ruled (64px) tool band beneath it. The same host height applies to sealed, loose, pouring and assembling states, preventing a layout jump during transfer. Rotation or loose tools occupy that shared band according to the ready state. The band stays empty during transfers; the primary button alone labels progress. Advanced seam settings and "换回示例" sit below the workbench. One footer states local photo processing and automatic saving. Decorative footer text, stage narration, repeated action hints and permanent save-success text are removed.
 
-At widths from (1600px), scene and fallback heights become (520px), and the intro top margin becomes (38px). Up to (1100px), page padding becomes (35px), the intro stacks with an (8px) copy gap, and the English brand descriptor is hidden. Up to (760px), page padding becomes (22px), the header (64px), the primary-switch column (132px), and the scene host (420px) in all states. File guidance spans both toolbar columns. The footer stacks. Up to (370px), padding becomes (16px), stage insets tighten and the upload SVG is hidden. The body minimum width is (320px).
+At widths from (1600px), scene and fallback heights become (520px), and the intro top margin becomes (38px). Up to (1100px), page padding becomes (35px), the headline top margin becomes (27px), and the English brand descriptor is hidden. Up to (760px), page padding becomes (22px), the header (64px), the primary-switch column (132px), and the scene host (420px) in all states. File guidance spans both toolbar columns. Up to (370px), padding becomes (16px), stage insets tighten and the upload SVG is hidden. The body minimum width is (320px).
 
-Loose play has an independent, axis-aligned layer with a fixed (720 × 432px) bitmap and displayed aspect ratio (5:3). Its frame is centered within padding (52px 26px 24px), with maximum width (600px). Up to (760px), padding becomes (52px 18px 24px), frame maximum width becomes (556px), and loose tools use the whole bottom band while their supplemental hint is hidden. Narrower than (370px), horizontal layer insets become (14px). The canvas keeps its bitmap on resize.
+Loose play has an independent, axis-aligned layer with a fixed (720 × 432px) bitmap and displayed aspect ratio (5:3). Its frame is centered within padding (52px 26px 24px), with maximum width (600px). Up to (760px), padding becomes (52px 18px 24px), frame maximum width becomes (556px), and loose tools use the whole bottom band. Narrower than (370px), horizontal layer insets become (14px). The canvas keeps its bitmap on resize.
 
 ## Elevation & Depth
 
@@ -180,13 +182,13 @@ The interface uses flat fills, thin borders and tonal separation. Ordinary contr
 
 The bottle uses a lathed glass shell and separate torus rims with a thin transparent Fresnel shader. A bundled HDR studio image supplies reflections, with low opacity across the center and stronger edge and highlight opacity. The glass remains an approximation without physical refraction. Canvas-textured cork, an opaque lathed sand body with a separate top cap, a low plinth and a radial contact shadow complete the object.
 
-Loose play uses a native (720 × 432px) two-dimensional canvas independent of the bottle camera. Seeded samples at (1.9px) intervals become mostly (2 × 2px) hard grains with a brighter top-left pixel and seeded brown gaps. The canvas uses pixelated image rendering. Push and swirl leave marks until explicit restore. Transfer renders those individual grains gathering from their current positions or depositing at their photograph positions; it does not fade the complete photo as one image.
+Loose play uses a native (720 × 432px) two-dimensional canvas independent of the bottle camera. Seeded samples at (1.9px) intervals become mostly (2 × 2px) hard grains with a brighter top-left pixel and seeded brown gaps. The canvas uses pixelated image rendering. Push and swirl leave marks until explicit restore. A transfer plan records each grain's current brush position, home position, local impact point and departure, mouth-crossing, landing and settling times. Pouring starts with a small central deposit near the bottom. Later grains land progressively higher and roll downward and outward toward their photo positions. Assembly removes grains from their actual brushed positions when their scheduled flight starts. Cancellation preserves those positions; completion restores the exact home picture.
 
 Packed sand uses a color map and an explicit tangent-space normal atlas (1536 × about 920px) on the body, with matching maps (256 × 256px) on the cap. The atlas rasterizes compact irregular five-to-seven-sided hulls, tilted crowns and bevel faces. Local stretch is (.92 to 1.08) before the complete shape rotates through a full turn. A fine underlayer and a second pass of larger grains use pitches of (3.8px and 7.4px) on the body and (2.2px and 4px) on the cap. Each grain samples its local photo color. Interstices use that local color at (.84) brightness, with softer local-color contact shadows beneath the grains. Lower crown peaks measure (.32 to .44 × grain size), with a rim height of (.035 × grain size). Each rasterized face supplies its own sloped tangent-space normal. A standard material receives scene lighting and shadows, using normal scale (.9), roughness (.94) and metalness (0). Both maps repeat horizontally with anisotropy (4). The material disposal event releases its normal map. Packed sand has no bump map, per-grain mesh geometry or grain collisions.
 
-The opaque profile follows the inner glass through shoulder and neck, with sand-colored support above the photograph. Height-based UVs contain the photograph once within the straight body band, using its circumference and height to preserve image proportions. The top cap shares the packed treatment. During both switches, a separate two-dimensional stream uses the projected mouth of the moving real bottle and photo-derived warm grain colors. This is an authored material sequence, without grain collisions or a fluid simulation.
+The opaque profile follows the inner glass through shoulder and neck, with sand-colored support above the photograph. Height-based UVs contain the photograph once within the straight body band, using its circumference and height to preserve image proportions. The top cap shares the packed treatment and stays at its accepted sealed height. During flow, the packed body and cap give way to a temporary dense 3D point volume. Seeded angle, height and radial samples cover the inner profile, with photo-derived warm colors and shaded compact grain sprites. Pouring compresses and shifts the remaining grains toward local gravity, then sends individual grains toward the neck. Assembly drops grains from the mouth and spreads them into the growing interior. The shared immutable route schedule controls mouth crossings and the remaining or accumulated bottle mass. A separate two-dimensional stream joins the projected mouth of the real moving bottle to each frame route. This sequence uses authored paths and bounds, without grain collisions or a full physics simulation.
 
-Actual captures for this revision are recorded under `.impeccable/review/linked-sand` for desktop, mobile and the user’s (590px) viewport, including loose and mid-transfer views in both directions. Parent verification reports exact warm sealed front and rotated PNG parity against the accepted renderer baselines (8c2d986 / 2cf32f9). This documentation pass read source and the supplied evidence paths; it did not open a browser, issue a finish-review disposition or establish new user acceptance.
+The earlier `.impeccable/review/linked-sand` captures record the motion the user rejected. They do not validate this correction. The accepted static renderer baselines remain (8c2d986 / 2cf32f9), with (631ad5f) recording the pre-correction implementation. This documentation pass reads source only. It does not report new render parity, a browser review, a finish disposition or user acceptance.
 
 **The Object Depth Rule.** Keep ordinary controls flat; reserve soft elevation for the physical picture frame and material depth for the bottle, cork, grains, plinth and scene contact shadow.
 
@@ -214,7 +216,7 @@ Photo selection pairs a (44px) cropped square thumbnail with a visible “换张
 
 ### Cards / Containers
 
-The bottle gallery is a flat stage-sand rectangle. Its bottom tool band shares the same surface and uses a horizontal rule. Recovery messages appear in a tinted inline area immediately below the workbench. Loading, pouring and assembling disable editing; the stage state and polite live status announce progress and saving. Errors use `role="alert"` and provide a retry route when rendering cannot continue.
+The bottle gallery is a flat stage-sand rectangle. Its bottom tool band shares the same surface and uses a horizontal rule. Recovery messages appear in a tinted inline area immediately below the workbench. Loading, pouring and assembling disable editing. The primary label and stage accessibility description identify transfer progress. A polite live status appears only while saving or when local saving is unavailable. Errors use `role="alert"` and provide a retry route when rendering cannot continue.
 
 ### Navigation
 
@@ -224,11 +226,11 @@ A single home link combines an outlined bottle mark, Chinese serif name and smal
 
 The focusable sealed stage retains vertical touch scrolling (`touch-action: pan-y`). Only the loose canvas uses `touch-action: none`, direct bitmap coordinates and pointer capture. Push uses swept segments within a (28px) bitmap radius and damped motion without a home spring. Swirl acts within a (160px) radius, with decaying angular motion after release. Selecting swirl previews it for (1100ms). Explicit restore uses per-grain delay and cubic easing over (820ms), finishing by about (980ms). The loose loop sleeps when settled.
 
-Pouring lasts (2900ms). The real bottle lifts from its plinth, uncorks, scales down and tips through (115°). Its projected mouth supplies the warm stream origin while the packed volume drains. The framed native canvas progressively receives individual grains and settles into its rectangular resting pose. The bottle exits before loose interaction resumes.
+Pouring lasts (2900ms). The real bottle lifts from its plinth, uncorks, scales down and tips through (115°). Its packed body switches to the temporary point volume during tipping. Individual grains slide toward the neck and leave at their scheduled mouth-crossing time. The projected mouth supplies the stream origin. Grains land near the central pile in the framed native canvas, then roll down and outward until the photograph is complete. The frame settles into its rectangular resting pose. The bottle exits before loose interaction resumes.
 
-Assembly lasts (2800ms). The current loose grains visibly gather toward the frame corner, enter the stream and travel into the real bottle mouth. The packed volume and top cap rise, the frame leaves, the filled bottle returns to its resting scale and position, and the cork closes. A sample of (1800) photo-derived grains connects the native field to the stream. Transient frame opacity accompanies those grain movements rather than replacing them.
+Assembly lasts (2800ms). Each current loose grain departs from its actual brushed position and follows its scheduled route toward the real bottle mouth. Interior point grains appear after the matching mouth crossing, fall and spread into the growing fill. Once all routes finish, the accepted packed body and cap return, the frame leaves, the bottle reaches its resting pose and the cork closes. The stream uses a subset of the same routes. Transient frame opacity accompanies grain movement.
 
-Both directions keep the accepted (32°) sealed camera fit throughout their transient bottle poses: distance is `max(9.4, 8.5/aspect)`, elevation is `.45 × distance` above the look point at `(0,.32,0)`. The independent flat canvas never uses that projection. Completion or cancellation resets temporary bottle pose, cork offset, frame transform, clipping and stream layers. A completed transfer leaves the same finished photo in its destination state.
+Both directions keep the accepted (32°) sealed camera fit throughout their transient bottle poses: distance is `max(9.4, 8.5/aspect)`, elevation is `.45 × distance` above the look point at `(0,.32,0)`. The independent flat canvas never uses that projection. Completion or cancellation resets the temporary bottle pose, cork offset, frame transform, point volume and stream layers, and restores the packed material state. A completed transfer leaves the same finished photo in its destination state.
 
 A sealed bottle turns around its vertical axis while preserving the photo. Arrow controls and the stage’s left/right keys each turn it by (π/5); pointer release uses bounded, decaying rotation inertia. Rendering stops when no interaction remains active. Reduced motion removes CSS transitions and release inertia and reaches the destination immediately for both switches. Manual loose manipulation remains available; swirl preview shortens to (180ms) and restore is immediate. Hidden pages complete active transfers and pause loose rendering.
 
@@ -252,5 +254,5 @@ Interactive elements use a (2px) clay focus outline with (5px) offset. The stage
 - **Don't** blur the loose field's hard pixel grains, top-left highlights or dark gaps.
 - **Don't** copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.
 - **Don't** alter the accepted warm sealed renderer to tune loose play or transient transfer poses.
-- **Don't** replace the bottle-mouth grain connection with a whole-image crossfade.
+- **Don't** drain a clipped photographic block or reveal the whole frame independently of grain landings.
 - **Don't** treat the earlier bottle acceptance as approval of the new interface or transfer sequence, or claim photorealism from the reference photographs.
