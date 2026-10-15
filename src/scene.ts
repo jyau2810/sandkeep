@@ -235,9 +235,9 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
     const index = (y * width + x) * 4;
     const color = sample(x, y);
-    base.data[index] = color[0] * 0.76;
-    base.data[index + 1] = color[1] * 0.76;
-    base.data[index + 2] = color[2] * 0.76;
+    base.data[index] = color[0] * 0.84;
+    base.data[index + 1] = color[1] * 0.84;
+    base.data[index + 2] = color[2] * 0.84;
     base.data[index + 3] = 255;
     normals.data[index] = normals.data[index + 1] = 128;
     normals.data[index + 2] = normals.data[index + 3] = 255;
@@ -281,7 +281,7 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
     }
   };
   const contact = (hull: Vertex[], color: Mineral) => {
-    const offsetX = 0.65, offsetY = 0.85, blur = 0.6;
+    const offsetX = 0.28, offsetY = 0.4, blur = 0.35;
     const left = Math.max(0, Math.floor(Math.min(...hull.map(point => point[0])) + offsetX - 2));
     const right = Math.min(width - 1, Math.ceil(Math.max(...hull.map(point => point[0])) + offsetX + 2));
     const first = Math.max(0, Math.floor(Math.min(...hull.map(point => point[1])) + offsetY - 2));
@@ -297,50 +297,61 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
         const t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / (dx * dx + dy * dy)));
         distanceSquared = Math.min(distanceSquared, (px - a[0] - dx * t) ** 2 + (py - a[1] - dy * t) ** 2);
       }
-      const coverage = 0.34 * (inside ? 1 : Math.exp(-distanceSquared / (2 * blur * blur)));
+      const coverage = 0.24 * (inside ? 1 : Math.exp(-distanceSquared / (2 * blur * blur)));
       if (coverage < 0.01) continue;
       const index = (y * width + x) * 4;
-      base.data[index] += (color[0] * 0.43 - base.data[index]) * coverage;
-      base.data[index + 1] += (color[1] * 0.43 - base.data[index + 1]) * coverage;
-      base.data[index + 2] += (color[2] * 0.43 - base.data[index + 2]) * coverage;
+      base.data[index] += (color[0] * 0.55 - base.data[index]) * coverage;
+      base.data[index + 1] += (color[1] * 0.55 - base.data[index + 1]) * coverage;
+      base.data[index + 2] += (color[2] * 0.55 - base.data[index + 2]) * coverage;
     }
   };
-  const pitch = source ? 8.6 : 4.4;
-  for (let y = -pitch; y < height + pitch; y += pitch) for (let x = -pitch; x < width + pitch; x += pitch) {
-    const px = x + (rand() - 0.5) * pitch * 0.86;
-    const py = y + (rand() - 0.5) * pitch * 0.86;
-    const size = pitch * (0.44 + rand() * 0.29);
-    const stretch = 0.76 + rand() * 0.52;
-    const rotation = rand() * Math.PI * 2;
-    const shade = 0.9 + rand() * 0.24;
-    const color = sample(px, py);
-    const sides = 5 + Math.floor(rand() * 3);
-    const hull: Vertex[] = [];
-    const crown: Vertex[] = [];
-    const centerX = px - size * 0.1, centerY = py - size * 0.12;
-    const peak = size * (0.42 + rand() * 0.16);
-    const tiltX = (rand() - 0.5) * 0.48, tiltY = (rand() - 0.5) * 0.48;
-    const rimHeight = size * 0.06;
-    for (let side = 0; side < sides; side++) {
-      const angle = rotation + (side + (rand() - 0.5) * 0.32) / sides * Math.PI * 2;
-      const reach = size * (0.8 + rand() * 0.28);
-      const ax = px + Math.cos(angle) * reach * stretch;
-      const ay = py + Math.sin(angle) * reach / stretch;
-      const inset = 0.43 + rand() * 0.17;
-      const bx = centerX + (ax - centerX) * inset;
-      const by = centerY + (ay - centerY) * inset;
-      hull.push([ax, ay, rimHeight]);
-      crown.push([bx, by, peak + (bx - centerX) * tiltX + (by - centerY) * tiltY]);
-    }
-    contact(hull, color);
-    for (let side = 0; side < sides; side++) {
-      const next = (side + 1) % sides;
-      const a = hull[side], b = hull[next];
-      const light = ((a[0] + b[0]) * 0.5 - px) * -0.09 / size + ((a[1] + b[1]) * 0.5 - py) * -0.13 / size;
-      const gain = shade * (0.91 + light);
-      triangle(crown[side], a, b, color, gain);
-      triangle(crown[side], b, crown[next], color, gain);
-      triangle([centerX, centerY, peak], crown[side], crown[next], color, shade * 1.035);
+  const packing = [
+    { pitch: source ? 3.8 : 2.2, minimum: 0.38, variation: 0.24 },
+    { pitch: source ? 7.4 : 4.0, minimum: 0.4, variation: 0.28 },
+  ];
+  for (const { pitch, minimum, variation } of packing) {
+    for (let y = -pitch; y < height + pitch; y += pitch) for (let x = -pitch; x < width + pitch; x += pitch) {
+      const px = x + (rand() - 0.5) * pitch * 0.76;
+      const py = y + (rand() - 0.5) * pitch * 0.76;
+      const size = pitch * (minimum + Math.pow(rand(), 0.7) * variation);
+      const stretch = 0.92 + rand() * 0.16;
+      const rotation = rand() * Math.PI * 2;
+      const cosine = Math.cos(rotation), sine = Math.sin(rotation);
+      const shade = 0.91 + rand() * 0.22;
+      const color = sample(px, py);
+      const sides = 5 + Math.floor(rand() * 3);
+      const hull: Vertex[] = [];
+      const crown: Vertex[] = [];
+      const centerLocalX = (rand() - 0.5) * size * 0.2;
+      const centerLocalY = (rand() - 0.5) * size * 0.2;
+      const centerX = px + centerLocalX * cosine - centerLocalY * sine;
+      const centerY = py + centerLocalX * sine + centerLocalY * cosine;
+      const peak = size * (0.32 + rand() * 0.12);
+      const tiltX = (rand() - 0.5) * 0.44, tiltY = (rand() - 0.5) * 0.44;
+      const rimHeight = size * 0.035;
+      for (let side = 0; side < sides; side++) {
+        const angle = (side + (rand() - 0.5) * 0.26) / sides * Math.PI * 2;
+        const reach = size * (0.82 + rand() * 0.22);
+        const localX = Math.cos(angle) * reach * stretch;
+        const localY = Math.sin(angle) * reach / stretch;
+        const ax = px + localX * cosine - localY * sine;
+        const ay = py + localX * sine + localY * cosine;
+        const inset = 0.48 + rand() * 0.16;
+        const bx = centerX + (ax - centerX) * inset;
+        const by = centerY + (ay - centerY) * inset;
+        hull.push([ax, ay, rimHeight]);
+        crown.push([bx, by, peak + (bx - centerX) * tiltX + (by - centerY) * tiltY]);
+      }
+      contact(hull, color);
+      for (let side = 0; side < sides; side++) {
+        const next = (side + 1) % sides;
+        const a = hull[side], b = hull[next];
+        const light = ((a[0] + b[0]) * 0.5 - px) * -0.06 / size + ((a[1] + b[1]) * 0.5 - py) * -0.09 / size;
+        const gain = shade * (0.94 + light);
+        triangle(crown[side], a, b, color, gain);
+        triangle(crown[side], b, crown[next], color, gain);
+        triangle([centerX, centerY, peak], crown[side], crown[next], color, shade * 1.02);
+      }
     }
   }
   context.putImageData(base, 0, 0);
