@@ -3,7 +3,7 @@
   "entryType": "individual",
   "name": "砂藏 Sandkeep",
   "track": "小工具区",
-  "tagline": "把照片化成彩砂，藏进可旋转的玻璃瓶，留住一整圈回忆。",
+  "tagline": "把照片化成暖调沙画，藏进可旋转的玻璃瓶，留住一整圈回忆。",
   "experienceType": "访问网页",
   "experienceUrl": "https://jyau2810.github.io/sandkeep/",
   "platforms": ["手机", "电脑"],
@@ -11,7 +11,7 @@
   "media": [
     "media/01-cover.png",
     "media/02-loose-sand.png",
-    "media/03-warm-sand.png",
+    "media/03-sand-swirl.png",
     "media/04-mobile.png",
     "media/05-demo.mp4"
   ],

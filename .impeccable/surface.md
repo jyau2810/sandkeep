@@ -2,7 +2,7 @@
 
 Mode: Experience.
 
-The first viewport proves a photo can become a small object to keep. A large glass bottle and its colored sand take precedence over controls. A visitor chooses a photograph, plays with loose color, seals it and turns the bottle to explore the entire circumference.
+The first viewport proves a photo can become a small object to keep. A large glass bottle and its colored sand take precedence over controls. A visitor chooses a photograph, plays with loose warm sand, seals it and turns the bottle to explore the entire circumference.
 
 The implementation direction is a small personal display plinth in warm daylight. This is a reversible implementation choice based on the accepted physical bottle mechanism, not a separately user-approved visual comp. The user requested implementation of the accepted interaction; the build is code-led.
 
@@ -12,6 +12,8 @@ The dealt foreign systems did not replace the physical bottle brief. 16mm film c
 
 FIRST VIEWPORT: warm paper surface, Chinese serif headline, generous bottle stage and compact creation controls. The transparent shell, sand relief, cork and soft contact shadow must read as one collectible. No metric grid or marketing claims. On mobile the artifact comes before the settings.
 
-Signature interaction: loose colored grains gather into a closed sand volume, then horizontal drag reveals the intact photo around Y. Reduced motion reaches the same finished object immediately. Keyboard users can reach and turn it.
+Signature interaction: disassembly reveals a front-facing rectangular warm sand painting inside a simple frame. Push and swirl preserve marks until explicit restore. The independent two-dimensional canvas does not use the bottle camera. Assembly gathers the intact photo into a closed sand volume, then horizontal drag reveals it around Y. Reduced motion reaches the same finished object immediately while retaining direct loose manipulation. Keyboard users can reach and turn the bottle.
 
 Risk: a texture can read as a printed label. The user explicitly rejected the fourth version's smoother surface as worse. Keep its filled profile, elevated camera and clear glass while restoring coherent, individually visible irregular grains at actual bottle scale. Compare grain treatments under identical framing. Use locally colored interstices and facet/relief differences, with no black backdrop. Real bottled-sand photographs guide packing; the positively received third version guides visible granularity. Keep the photo legible and wrapped once. The user chose the independent B direction and then requested a stronger effect. The current refinement retains explicit sloped face normals while replacing rice-like coarse shapes with finer compact fully rotated grains, a fine underlayer and softer contact edges. Preserve the filled profile and existing scene framing. Smaller grains must retain visible relief at actual size.
+
+Accepted boundary: the user said “瓶子的效果可以了” after the fine-grain refinement, then requested warm-only presentation and a framed flat loose painting. Preserve that warm sealed renderer, camera, geometry, glass, lighting and rotation. New loose work is separate from accepted bottle appearance.

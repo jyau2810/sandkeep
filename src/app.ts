@@ -1,4 +1,4 @@
-import { makeDraft, reviseDraft, type AppIssue, type BottleDraft, type DraftEdits, type Presentation } from './domain';
+import { makeDraft, reviseDraft, type AppIssue, type BottleDraft, type DraftEdits, type LooseTool, type Presentation } from './domain';
 import { normalizePhoto } from './photo';
 import { createBottleStore, type SaveResult } from './persistence';
 import { createBottleScene, type BottleScene } from './scene';
@@ -29,19 +29,19 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
       <main>
         <div class="intro">
           <h1>把一张回忆，<br>藏进一瓶沙。</h1>
-          <p class="intro-copy">照片化成彩砂，回忆有了形状。<br>装好以后，转一转，看看另一面。</p>
+          <p class="intro-copy">照片化成暖砂，回忆有了形状。<br>装好以后，转一转，看看另一面。</p>
         </div>
         <div class="studio">
           <section class="bottle-gallery" aria-label="瓶子预览">
             <div class="stage-topline"><span class="stage-state" data-testid="stage-state">正在准备彩砂</span><span class="local-badge"><span aria-hidden="true"></span>只留在你的浏览器</span></div>
-            <div class="scene-host" tabindex="0" role="img" aria-label="彩砂预览。装瓶后可左右拖动旋转，也可使用左右方向键。" data-testid="bottle-scene"></div>
+            <div class="scene-host" tabindex="0" role="img" aria-label="暖调沙画瓶。左右拖动旋转，也可使用左右方向键。" data-testid="bottle-scene"></div>
+            <div class="loose-tools" role="group" aria-label="平面沙画玩法" hidden><div class="loose-tool-options"><button type="button" class="loose-tool-button" data-tool="push" aria-pressed="true">拨沙</button><button type="button" class="loose-tool-button" data-tool="swirl" aria-pressed="false">旋涡</button></div><button type="button" class="text-button loose-restore" data-action="restore">聚回照片</button></div>
             <div class="scene-fallback" hidden><p>这里需要浏览器支持 3D 画面。</p><p>请试试新版 Chrome、Edge 或 Safari，并开启硬件加速。</p><button class="text-button" type="button" data-action="retry">重新尝试</button></div>
             <div class="gallery-bottom"><div class="bottle-caption"><span class="caption-name">那天的海</span><span class="caption-detail">一张照片 · 一瓶回忆</span></div><div class="rotation"><button class="rotation-button" type="button" aria-label="向左旋转瓶子" data-action="left">${arrowLeft}</button><span class="rotation-hint">左右拖动，转一转</span><button class="rotation-button" type="button" aria-label="向右旋转瓶子" data-action="right">${arrowRight}</button></div></div>
           </section>
           <section class="creation-panel" aria-label="制作你的瓶子">
             <div class="panel-heading"><h2>这一瓶，装什么？</h2><p>一片海、一只猫，或某个想留住的瞬间。</p></div>
             <div class="photo-picker"><img class="photo-thumb" alt="当前照片预览"><div class="photo-choice"><label class="upload-button" for="photo-input">选一张自己的照片<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5"/></svg></label><input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp"><span class="file-help">JPG / PNG / WebP · 不超过 15 MB</span></div></div>
-            <fieldset class="palette-field"><legend>让沙子保留什么颜色</legend><div class="palette-options"><button type="button" class="palette-option" data-palette="original" aria-pressed="true"><span class="color-swatch color-swatch-original" aria-hidden="true"></span><span>照片原色</span></button><button type="button" class="palette-option" data-palette="warm" aria-pressed="false"><span class="color-swatch color-swatch-warm" aria-hidden="true"></span><span>暖调沙画</span></button></div></fieldset>
             <div class="title-field"><label for="bottle-title">给这瓶回忆起个名字</label><input id="bottle-title" type="text" maxlength="60" placeholder="比如，那天的海" autocomplete="off"><span class="field-help">最多 30 个字</span></div>
             <details class="seam-details"><summary>瓶身接缝<svg class="disclosure-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><div class="seam-setting"><label for="seam-width">用一道细沙纹连接照片两端</label><input id="seam-width" type="range" min="0" max="4" step="0.2" value="1.8"><div class="range-labels"><span>无沙纹</span><span>宽一点</span></div></div></details>
             <div class="make-area"><button class="primary-button" type="button" data-action="bottle" disabled><span>装进瓶子</span>${arrowRight}</button><p class="action-hint">装瓶前，试着在彩砂上划一划。</p><div class="status-message" role="status" aria-live="polite" data-testid="app-status"></div><div class="issue-message" role="alert" hidden></div><button class="text-button reset-button" type="button" data-action="reset">换回示例，重新开始</button></div>
@@ -70,7 +70,8 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
   const status = element<HTMLDivElement>('.status-message');
   const issue = element<HTMLDivElement>('.issue-message');
   const fallback = element<HTMLDivElement>('.scene-fallback');
-  const paletteButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-palette]')];
+  const looseTools = element<HTMLDivElement>('.loose-tools');
+  const toolButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-tool]')];
   const rotationButtons = [...root.querySelectorAll<HTMLButtonElement>('.rotation-button')];
   const store = createBottleStore();
   const lifetime = new AbortController();
@@ -83,11 +84,16 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
   let disposed = false;
   let started = false;
   let fatal = false;
+  let looseTool: LooseTool = 'push';
 
   function ready(): Ready | null {
     if (phase.kind === 'loose' || phase.kind === 'sealed') return phase;
     if (phase.kind === 'loading' || phase.kind === 'failure') return phase.previous;
     return { kind: 'loose', draft: phase.draft };
+  }
+
+  function canPlayLoose(): boolean {
+    return ready()?.kind === 'loose' && phase.kind !== 'loading' && phase.kind !== 'assembling' && !fatal;
   }
 
   function render(): void {
@@ -97,16 +103,19 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     const sealed = current?.kind === 'sealed';
     root.dataset.phase = phase.kind;
     host.setAttribute('aria-busy', String(busy));
-    host.setAttribute('aria-label', '沙画瓶，左右拖动旋转');
+    const looseReady = canPlayLoose();
+    host.setAttribute('aria-label', sealed ? '暖调沙画瓶，左右拖动旋转，也可使用左右方向键。' : '带画框的平面暖调沙画。选择拨沙或旋涡后，在画中拖动。聚回照片可以复原。');
+    host.dataset.presentation = phase.kind === 'assembling' ? 'assembling' : sealed ? 'sealed' : 'loose';
     stageState.textContent = phase.kind === 'loading' ? '正在准备彩砂' : phase.kind === 'assembling' ? '把这一刻，慢慢装好' : sealed ? '回忆已装瓶' : '先玩一会儿彩砂';
     primary.disabled = busy || !current || fatal;
     primary.querySelector('span')!.textContent = phase.kind === 'assembling' ? '彩砂正在入瓶' : sealed ? '拆开再玩' : '装进瓶子';
-    actionHint.textContent = phase.kind === 'assembling' ? '稍等片刻，照片正在沙子里重现。' : sealed ? '拖动瓶身，转一圈看完整张照片。' : '装瓶前，试着在彩砂上划一划。';
+    actionHint.textContent = phase.kind === 'assembling' ? '稍等片刻，照片正在沙子里重现。' : sealed ? '拖动瓶身，转一圈看完整张照片。' : looseTool === 'swirl' ? '在画中按住，卷起一阵旋涡。' : '在画中拖动拨沙，聚回照片可以复原。';
     titleInput.disabled = busy || !current || fatal;
     seamInput.disabled = busy || !current || fatal;
-    paletteButtons.forEach(button => {
-      button.disabled = busy || !current || fatal;
-      button.setAttribute('aria-pressed', String(current?.draft.colorMode === button.dataset.palette));
+    looseTools.hidden = !looseReady;
+    toolButtons.forEach(button => {
+      button.disabled = !looseReady;
+      button.setAttribute('aria-pressed', String(looseTool === button.dataset.tool));
     });
     rotationButtons.forEach(button => { button.disabled = busy || !sealed || fatal; });
     element<HTMLSpanElement>('.rotation-hint').textContent = sealed ? '左右拖动，转一转' : '装好以后，转着看';
@@ -167,6 +176,10 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     const result = await ensureScene().show(draft, mode, signal);
     if (!currentIntent(id) || result === 'cancelled') return false;
     phase = { kind: mode, draft };
+    if (mode === 'loose') {
+      looseTool = 'push';
+      scene?.setLooseTool(looseTool);
+    }
     fatal = false;
     render();
     return true;
@@ -248,9 +261,15 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     if (file) void loadPhoto(file);
   }, { signal: lifetime.signal });
   primary.addEventListener('click', () => { void bottle(); }, { signal: lifetime.signal });
-  paletteButtons.forEach(button => button.addEventListener('click', () => {
-    void editAppearance({ colorMode: button.dataset.palette === 'warm' ? 'warm' : 'original' });
+  toolButtons.forEach(button => button.addEventListener('click', () => {
+    if (!canPlayLoose()) return;
+    looseTool = button.dataset.tool === 'swirl' ? 'swirl' : 'push';
+    scene?.setLooseTool(looseTool);
+    render();
   }, { signal: lifetime.signal }));
+  element<HTMLButtonElement>('[data-action="restore"]').addEventListener('click', () => {
+    if (canPlayLoose()) scene?.restoreLoose();
+  }, { signal: lifetime.signal });
   seamInput.addEventListener('change', () => { void editAppearance({ seamWidth: Number(seamInput.value) / 100 }); }, { signal: lifetime.signal });
   titleInput.addEventListener('input', () => {
     const previous = ready();

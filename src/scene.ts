@@ -1,12 +1,15 @@
 import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import studioUrl from './assets/studio-small-09.hdr?url';
-import type { AppIssue, BottleDraft, Presentation, SceneResult } from './domain';
+import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from './domain';
+import { createLooseSand, type LooseSand } from './loose-sand';
 
 export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
   assemble(signal?: AbortSignal): Promise<SceneResult>;
   turnBy(radians: number): void;
+  setLooseTool(tool: LooseTool): void;
+  restoreLoose(): void;
   dispose(): void;
 }
 
@@ -29,7 +32,7 @@ type Content = {
   draft: BottleDraft;
   grains: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
   field: GrainField;
-  loose: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  loose: LooseSand;
   mantle: THREE.Mesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
   cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshStandardMaterial>;
   fillPlane: THREE.Plane;
@@ -187,15 +190,6 @@ function paintField(field: GrainField): void {
     }
   }
   field.context.putImageData(field.frame, 0, 0);
-}
-
-function fieldTexture(field: GrainField): THREE.CanvasTexture {
-  const texture = new THREE.CanvasTexture(field.canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  texture.generateMipmaps = false;
-  return texture;
 }
 
 function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft): THREE.MeshStandardMaterial {
@@ -595,17 +589,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   let previousTime = 0;
   let yawVelocity = 0;
   let gesture: Gesture | null = null;
-  let looseEnergy = 0;
-  let impulse = 0;
-  let pointerDX = 0;
-  let pointerDY = 0;
   let width = 1;
   let height = 1;
-  const pointer = new THREE.Vector3(100, 100, 0);
-  const previousPointer = new THREE.Vector3(100, 100, 0);
-  const raycaster = new THREE.Raycaster();
-  const pointerNdc = new THREE.Vector2();
-  const pointerPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -1.5);
   const pendingDecodes = new Set<() => void>();
 
   function requestFrame(): void {
@@ -633,16 +618,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     placeCamera();
     if (content) {
       content.grains.material.uniforms.pointScale.value = renderer.getDrawingBufferSize(new THREE.Vector2()).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-      const fieldWidth = Math.min(720, Math.max(240, Math.round(Math.min(width * 0.9, height * 1.36) * 1.2)));
-      if (Math.abs(content.field.canvas.width - fieldWidth) > 8) {
-        const replacement = grainField(content.source, fieldWidth, Math.round(fieldWidth * 0.6), content.draft);
-        content.loose.material.map!.dispose();
-        content.loose.material.map = fieldTexture(replacement);
-        content.loose.material.needsUpdate = true;
-        content.field.canvas.width = content.field.canvas.height = 0;
-        content.field = replacement;
-        looseEnergy = 0;
-      }
     }
     requestFrame();
   }
@@ -651,7 +626,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     bottle.remove(value.group);
     value.grains.geometry.dispose();
     value.grains.material.dispose();
-    for (const mesh of [value.loose, value.mantle, value.cap]) {
+    value.loose.dispose();
+    for (const mesh of [value.mantle, value.cap]) {
       mesh.geometry.dispose();
       mesh.material.map?.dispose();
       if (mesh.material instanceof THREE.MeshStandardMaterial) mesh.material.bumpMap?.dispose();
@@ -661,30 +637,19 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     value.source.width = value.source.height = 0;
   }
 
-  function resetLoose(): void {
-    if (!content) return;
-    content.field.positions.set(content.field.home);
-    content.field.velocity.fill(0);
-    paintField(content.field);
-    content.loose.material.map!.needsUpdate = true;
-    looseEnergy = 0;
-    impulse = 0;
-    bottle.rotation.y = 0;
-  }
-
   function applyPresentation(next: Presentation): void {
     mode = next;
     canvas.style.cursor = next === 'sealed' ? 'grab' : 'crosshair';
     vessel.visible = plinth.visible = shadow.visible = next === 'sealed';
     if (!content) return;
     content.grains.visible = false;
-    content.loose.visible = next === 'loose';
+    content.loose.setActive(next === 'loose' && !disposed && !contextLost);
     content.mantle.visible = content.cap.visible = next === 'sealed';
     if (next === 'sealed') {
       content.fillPlane.constant = fillTop;
       content.cap.position.y = fillTop;
       content.cap.scale.setScalar(sandRadiusAt(fillTop));
-    } else resetLoose();
+    } else bottle.rotation.y = 0;
     resize();
   }
 
@@ -703,7 +668,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const progress = Math.min(1, (now - assembly.started) / duration);
     if (progress >= 1) { finishAssembly('completed'); return; }
     placeCamera(progress);
-    content.loose.visible = progress < 0.14;
     content.grains.visible = progress >= 0.08 && progress < 0.97;
     vessel.visible = plinth.visible = shadow.visible = progress > 0.12;
     content.mantle.visible = content.cap.visible = progress > 0.3;
@@ -729,46 +693,12 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     positions.needsUpdate = true;
   }
 
-  function animateLoose(dt: number): void {
-    if (!content) return;
-    const field = content.field;
-    const { width: fw, height: fh } = field.canvas;
-    const px = (pointer.x / 5.7 + 0.5) * fw;
-    const py = (0.5 - (pointer.y - 0.28) / 3.42) * fh;
-    const step = Math.min(2, dt * 60);
-    const influence = fw * 0.13;
-    let energy = 0;
-    for (let i = 0; i < field.count; i++) {
-      const k = i * 2;
-      const dx = field.positions[k] - px;
-      const dy = field.positions[k + 1] - py;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      if (impulse && distance < influence && distance > 0.01) {
-        const force = (1 - distance / influence) * impulse * 32;
-        field.velocity[k] += (dx * 0.55 + dy * 1.3) / distance * force + pointerDX * force * 0.15;
-        field.velocity[k + 1] += (dy * 0.55 - dx * 1.3) / distance * force - pointerDY * force * 0.15;
-      }
-      for (let axis = 0; axis < 2; axis++) {
-        const p = k + axis;
-        field.velocity[p] = (field.velocity[p] + (field.home[p] - field.positions[p]) * 0.0015 * step) * Math.pow(0.86, step);
-        field.positions[p] += field.velocity[p] * step;
-        energy += Math.abs(field.velocity[p]);
-      }
-    }
-    impulse = 0;
-    looseEnergy = energy / field.count;
-    paintField(field);
-    content.loose.material.map!.needsUpdate = true;
-    if (looseEnergy < 0.0001) resetLoose();
-  }
-
   function draw(now: number): void {
     frame = 0;
     if (disposed || contextLost) return;
     const dt = previousTime ? Math.min(0.05, (now - previousTime) / 1000) : 1 / 60;
     previousTime = now;
     if (assembly) animateAssembly(now);
-    else if (mode === 'loose' && (looseEnergy || impulse)) animateLoose(dt);
     if (!gesture && Math.abs(yawVelocity) > 0.00005) {
       bottle.rotation.y += yawVelocity * dt * 60;
       yawVelocity *= Math.pow(0.9, dt * 60);
@@ -777,10 +707,11 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     catch {
       contextLost = true;
       finishAssembly('cancelled');
+      content?.loose.setActive(false);
       options.onFault({ code: 'render-failed', message: '瓶子显示中断了，刷新页面后再试试。' });
       return;
     }
-    if (assembly || impulse || looseEnergy > 0.0001 || Math.abs(yawVelocity) > 0.00005) requestFrame();
+    if (assembly || Math.abs(yawVelocity) > 0.00005) requestFrame();
   }
 
   function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
@@ -824,10 +755,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const projectedWidth = Math.min(width * 0.9, height * 1.36);
     const fieldWidth = Math.min(720, Math.max(240, Math.round(projectedWidth * 1.2)));
     const field = grainField(source, fieldWidth, Math.round(fieldWidth * 0.6), draft);
-    const loose = new THREE.Mesh(new THREE.PlaneGeometry(5.7, 3.42), new THREE.MeshBasicMaterial({
-      map: fieldTexture(field), toneMapped: false,
-    }));
-    loose.position.set(0, 0.28, 1.5);
     const mantleMaterial = packedSandMaterial(source, draft);
     const fillPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), fillTop);
     mantleMaterial.clippingPlanes = [fillPlane];
@@ -872,7 +799,10 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const grains = new THREE.Points(geometry, grainMaterial());
     grains.frustumCulled = false;
     const group = new THREE.Group();
-    group.add(grains, loose, mantle, cap);
+    group.add(grains, mantle, cap);
+    const looseSource = photoCanvas(source, 720, 432);
+    const loose = createLooseSand(looseSource, options.reducedMotion);
+    looseSource.width = looseSource.height = 0;
     return { draft, grains, field, loose, mantle, cap, fillPlane, source, flat, target, count: flyingCount, group };
   }
 
@@ -899,6 +829,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const previous = content;
     content = prepared;
     bottle.add(prepared.group);
+    host.append(prepared.loose.element);
     if (!previous || previous.draft.imageDataUrl !== draft.imageDataUrl) bottle.rotation.y = 0;
     if (previous) releaseContent(previous);
     yawVelocity = 0;
@@ -921,6 +852,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const promise = new Promise<SceneResult>((done) => { resolve = done; });
     const abort = () => finishAssembly('cancelled');
     const timeout = setTimeout(() => finishAssembly('completed'), duration);
+    content.loose.setActive(false);
     assembly = { started: performance.now(), promise, resolve, timeout, signal, abort };
     signal?.addEventListener('abort', abort, { once: true });
     bottle.rotation.y = 0;
@@ -929,7 +861,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (assembly || !content) return;
+    if (assembly || !content || mode !== 'sealed') return;
     gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, horizontal: event.pointerType === 'mouse' };
     yawVelocity = 0;
     if (event.pointerType === 'mouse') canvas.setPointerCapture(event.pointerId);
@@ -938,20 +870,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
 
   function onPointerMove(event: PointerEvent): void {
     if (!content || assembly) return;
-    if (mode === 'loose' && !options.reducedMotion && gesture) {
-      const rect = canvas.getBoundingClientRect();
-      pointerNdc.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
-      raycaster.setFromCamera(pointerNdc, camera);
-      previousPointer.copy(pointer);
-      if (raycaster.ray.intersectPlane(pointerPlane, pointer)) {
-        bottle.worldToLocal(pointer);
-        pointerDX = THREE.MathUtils.clamp((pointer.x - previousPointer.x) * 12, -2, 2);
-        pointerDY = THREE.MathUtils.clamp((pointer.y - previousPointer.y) * 12, -2, 2);
-        impulse = Math.min(0.11, impulse + 0.055);
-        looseEnergy = 1;
-        requestFrame();
-      }
-    }
     if (!gesture || event.pointerId !== gesture.id || mode !== 'sealed') return;
     const dx = event.clientX - gesture.x;
     const dy = event.clientY - gesture.y;
@@ -994,6 +912,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     frame = 0;
     for (const cancel of [...pendingDecodes]) cancel();
     finishAssembly('cancelled');
+    content?.loose.setActive(false);
     options.onFault({ code: 'context-lost', message: '浏览器暂停了瓶子的显示，刷新页面就能重新打开。' });
   }
 
@@ -1011,6 +930,14 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   return {
     show,
     assemble,
+    setLooseTool(tool: LooseTool): void {
+      if (disposed || contextLost || assembly || mode !== 'loose') return;
+      content?.loose.setTool(tool);
+    },
+    restoreLoose(): void {
+      if (disposed || contextLost || assembly || mode !== 'loose') return;
+      content?.loose.restore();
+    },
     turnBy(radians: number): void {
       if (disposed || contextLost || !Number.isFinite(radians)) return;
       bottle.rotation.y += radians;

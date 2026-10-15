@@ -7,7 +7,7 @@
 - 作品名称：**砂藏 Sandkeep**
 - 参赛类型：**个人参赛**
 - 建议赛道：**小工具区**
-- 一句话介绍：**把照片化成彩砂，藏进可旋转的玻璃瓶，留住一整圈回忆。**
+- 一句话介绍：**把照片化成暖调沙画，藏进可旋转的玻璃瓶，留住一整圈回忆。**
 - 体验方式：**访问网页**
 - 访问地址：[https://jyau2810.github.io/sandkeep/](https://jyau2810.github.io/sandkeep/)
 - 使用说明：复制 [instructions.md](instructions.md) 的全文。
@@ -17,9 +17,9 @@
 
 ## 上传顺序
 
-素材放在 [media/](media/README.md)，包含 4 张 PNG 和 1 段 MP4。依次上传 `01-cover.png`、`02-loose-sand.png`、`03-warm-sand.png`、`04-mobile.png`、`05-demo.mp4`，第一张作为封面。
+素材放在 [media/](media/README.md)，包含 4 张 PNG 和 1 段 MP4。依次上传 `01-cover.png`、`02-loose-sand.png`、`03-sand-swirl.png`、`04-mobile.png`、`05-demo.mp4`，第一张作为封面。
 
-正式页面已返回 HTTP 200，线上完成了导入照片、命名、换色、装瓶、拖动旋转和刷新恢复检查，未捕获页面错误。部署记录见 [首次发布工作流](https://github.com/jyau2810/sandkeep/actions/runs/38737743442)。
+正式页面已返回 HTTP 200，线上完成了导入照片、命名、拨沙、复原、装瓶、拖动旋转和刷新恢复检查，未捕获页面错误。部署记录见 [首次发布工作流](https://github.com/jyau2810/sandkeep/actions/runs/38737743442)。
 
 ## 已核对的页面约束
 

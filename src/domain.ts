@@ -1,5 +1,6 @@
 export type ColorMode = 'original' | 'warm';
 export type Presentation = 'loose' | 'sealed';
+export type LooseTool = 'push' | 'swirl';
 
 export type BottleDraft = Readonly<{
   schemaVersion: 1;
@@ -25,7 +26,7 @@ export function makeDraft(imageDataUrl: string, now = Date.now()): BottleDraft {
     schemaVersion: 1,
     imageDataUrl,
     title: '猫的午后',
-    colorMode: 'original',
+    colorMode: 'warm',
     seamWidth: 0.018,
     createdAt: now,
   });
@@ -54,6 +55,6 @@ export function parseDraft(value: unknown): BottleDraft | null {
     || typeof d.createdAt !== 'number' || !Number.isFinite(d.createdAt) || d.createdAt < 0) return null;
   return {
     schemaVersion: 1, imageDataUrl: d.imageDataUrl, title: d.title,
-    colorMode: d.colorMode, seamWidth: d.seamWidth, createdAt: d.createdAt,
+    colorMode: 'warm', seamWidth: d.seamWidth, createdAt: d.createdAt,
   };
 }
