@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T12:43:42.688690+00:00",
+  "generatedAt": "2026-10-15T13:54:22.948731+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -196,7 +196,7 @@
       {
         "name": "assembly",
         "value": "2600ms; e=t*t*(3-2*t); 2500 temporary points",
-        "purpose": "Level-dependent smoothstep paths with arc and swirl; the mantle/core/cap fill rises from 28% to 95% progress, then the sealed texture remains static."
+        "purpose": "Level-dependent smoothstep paths with arc and swirl. An upward clipping plane reveals the full-size packed sand from 28% to 95% progress, while the cap follows the fill height and profile radius."
       },
       {
         "name": "rotation-release",
@@ -268,7 +268,7 @@
       {
         "name": "pixel-sand-field",
         "value": "CPU grainField; seeded LCG:907; sample interval:1.9px; jitter:1.7px; 85% 2×2 grains, otherwise 1×1; NearestFilter; generateMipmaps:false",
-        "purpose": "Hard pixel grains carry image-derived color, per-grain shade variation and a brighter top-left pixel over seeded dark gaps. This is the grain treatment guided by the user-provided reference."
+        "purpose": "Loose play only. Hard pixel grains carry image-derived color, per-grain shade variation and a brighter top-left pixel over seeded dark gaps. The user-provided cat grain reference guides this treatment."
       },
       {
         "name": "loose-photo-plane",
@@ -277,13 +277,13 @@
       },
       {
         "name": "photo-mantle",
-        "value": "512×256 grainField CanvasTexture; MeshBasicMaterial toneMapped:false; open CylinderGeometry radius:.91; height:PI*.91; rotationY:PI",
-        "purpose": "Opaque granular photograph wrap in the sealed bottle; seam width is applied when sampling the source. It remains intact during rotation."
+        "value": "1536×920 CanvasTexture; local-color shade=.925+grain*.15; bumpScale:.008; MeshStandardMaterial color:0xbebebe; roughness:1; metalness:0; envMapIntensity:.14; map and bumpMap anisotropy:4; LatheGeometry radial segments:160; maximum radius:.966; y:-1.535 to 2.10; rotationY:PI",
+        "purpose": "Opaque packed sand follows the inner glass through shoulder and neck and receives lighting and shadows. Height-based UVs contain the photo once in the straight band from y=-1.49 to 1.20, preserving proportions against the actual circumference and height. Sand-colored support fills the remaining surface; seam width is applied before the fine noise and bump maps."
       },
       {
-        "name": "sand-cap-and-core",
-        "value": "128×128 grainField cap over #c2a479; dark closed CylinderGeometry core color:0x302922; MeshBasicMaterial toneMapped:false",
-        "purpose": "Granular top surface and opaque inner volume beneath the photograph mantle."
+        "name": "packed-sand-cap",
+        "value": "256×256 local-color noise and bump CanvasTextures over #bda17a; MeshStandardMaterial color:0xbebebe; roughness:1; metalness:0; bumpScale:.008; envMapIntensity:.14; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(level)",
+        "purpose": "A sand-colored top cap matches the packed body material. It follows the clipping plane during assembly and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core."
       },
       {
         "name": "assembly-grains",
@@ -306,9 +306,11 @@
         "src/assets/studio-small-09.hdr",
         "PRODUCT.md",
         ".impeccable/surface.md",
-        ".impeccable/quality-bar.md"
+        ".impeccable/quality-bar.md",
+        "docs/architecture.md",
+        "docs/visual-references.md"
       ],
-      "authority": "User-provided pixel-sand reference is positive authority for the grain treatment. The surrounding interface and bottle remain code-led; full rebuilt-bottle acceptance is pending.",
+      "authority": "The user-provided cat grain reference guides loose play only. Smithsonian and Petra photographs in docs/visual-references.md guide the packed material, filled profile and perspective. The interface and bottle remain code-led. The latest user feedback requested further correction; no full-bottle acceptance is claimed.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
       "notCanonized": "The build carries 8–11px ancillary text in several contexts. Those sizes are captured only where needed to reproduce actual snippets, not promoted into a universal legibility rule. No browser or visual verification was performed by this documentation pass.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule."
@@ -316,13 +318,13 @@
     "camera": [
       {
         "name": "stage-fit",
-        "value": "PerspectiveCamera fov:32; sealedDistance=max(9.4,8.5/aspect); looseDistance=max(9.4,1.5+11.03/aspect)",
-        "purpose": "Separate aspect-aware fits for the sealed bottle and 5.7 × 3.42 world-unit loose plane; camera position (0,.32+distance*.094,distance), looking at (0,.32,0)."
+        "value": "PerspectiveCamera fov:32; sealedDistance=max(9.4,8.5/aspect); looseDistance=max(9.4,1.5+11.03/aspect); loose elevation:.094; sealed elevation:.45",
+        "purpose": "Separate aspect-aware fits for the sealed bottle and 5.7 × 3.42 world-unit loose plane. The camera position is (0,.32+distance*elevation,distance), looking at (0,.32,0). One projection covers glass, cork, sand, plinth and contact shadow."
       },
       {
         "name": "assembly-fit",
-        "value": "blend=progress*progress*(3-2*progress); distance=looseDistance*(1-blend)+sealedDistance*blend",
-        "purpose": "Smoothly move from the loose-field fit to the sealed-bottle fit during assembly; resize reapplies the active presentation fit."
+        "value": "blend=progress*progress*(3-2*progress); distance=looseDistance*(1-blend)+sealedDistance*blend; elevation=lerp(.094,.45,blend)",
+        "purpose": "Smoothly move from the loose-field fit to the elevated sealed-bottle fit during assembly. Resize reapplies the active presentation fit."
       }
     ]
   },
@@ -393,7 +395,7 @@
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.\n\nThis system is extracted from the rebuilt application. The user-provided pixel-sand reference is positive authority for the grain treatment; the surrounding interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and acceptance of the full rebuilt bottle is pending. Thin reflective glass, textured cork, hard-pixel photograph grains and a contact shadow describe the current rendering choices; they are not a claim of photorealism.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.\n\nThis system is extracted from the rebuilt application. The user-provided cat grain reference guides loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide the dense packed sand, filled profile and perspective. The interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and the user has not accepted the full bottle. Reflective glass, textured cork, dense fine-grain sand and a contact shadow describe the current rendering choices without claiming photorealism.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a colorful personal photograph.",
       "Chinese serif display type paired with Chinese system sans controls.",
@@ -427,8 +429,9 @@
     "donts": [
       "Don't add card shadows or rounded floating panels to the currently flat interface.",
       "Don't use the scene’s photo colors as competing interface accents.",
-      "Don't blur away the pixel grains, top-left highlights or dark gaps established by the grain reference.",
-      "Don't treat the user-provided grain reference as approval of the full rebuilt bottle."
+      "Don't blur the loose field's hard pixel grains, top-left highlights or dark gaps.",
+      "Don't copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.",
+      "Don't treat the loose-grain reference or real-bottle photographs as user approval of the full bottle."
     ]
   }
 }

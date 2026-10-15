@@ -14,4 +14,4 @@ FIRST VIEWPORT: warm paper surface, Chinese serif headline, generous bottle stag
 
 Signature interaction: loose colored grains gather into a closed sand volume, then horizontal drag reveals the intact photo around Y. Reduced motion reaches the same finished object immediately. Keyboard users can reach and turn it.
 
-Risk: a texture can read as a printed label. Counter it with the user-supplied reference’s crisp grain sampling and dark gaps, closed caps and the assembly moment, while retaining recognizable source detail. Preserve granular sharpness through the clear glass overlay; do not reintroduce transmission blur.
+Risk: a texture can read as a printed label. The latest user feedback keeps the improved loose-sand interaction but rejects black gaps, weak volume and the sealed view's perspective. Real bottled-sand photographs in docs/visual-references.md are now the sealed material reference. Packed sand needs dense local-color grain, rough directional shading and a solid profile extending into the shoulder and neck. Use one coherent elevated camera for glass, cork, sand and base. Keep the photo legible through the clear glass overlay.

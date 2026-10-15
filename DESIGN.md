@@ -112,7 +112,7 @@ components:
 
 A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.
 
-This system is extracted from the rebuilt application. The user-provided pixel-sand reference is positive authority for the grain treatment; the surrounding interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and acceptance of the full rebuilt bottle is pending. Thin reflective glass, textured cork, hard-pixel photograph grains and a contact shadow describe the current rendering choices; they are not a claim of photorealism.
+This system is extracted from the rebuilt application. The user-provided cat grain reference guides loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide the dense packed sand, filled profile and perspective. The interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and the user has not accepted the full bottle. Reflective glass, textured cork, dense fine-grain sand and a contact shadow describe the current rendering choices without claiming photorealism.
 
 **Key Characteristics:**
 - Warm, low-chroma interface around a colorful personal photograph.
@@ -175,9 +175,11 @@ Use the observed spacing steps in frontmatter for neighboring controls. Preserve
 
 The interface uses flat fills, thin borders and tonal separation. It does not use card or button drop shadows. The warm swatch alone has a small inset shadow; object depth comes from the 3D scene.
 
-The bottle uses a lathed glass shell and separate torus rims with a thin transparent Fresnel shader. A bundled HDR studio image supplies reflections, with low opacity across the center and stronger edge and highlight opacity. It does not simulate physical refraction. Canvas-textured cork, a dark closed cylindrical core, a granular photograph mantle, a granular top cap, a low plinth and a radial contact shadow complete the object.
+The bottle uses a lathed glass shell and separate torus rims with a thin transparent Fresnel shader. A bundled HDR studio image supplies reflections, with low opacity across the center and stronger edge and highlight opacity. The glass remains an approximation without physical refraction. Canvas-textured cork, an opaque lathed sand body with a separate top cap, a low plinth and a radial contact shadow complete the object.
 
-The grain appearance comes from a CPU-painted pixel field: seeded samples at (1.9px) intervals become mostly (2 × 2px) hard grains with a brighter top-left pixel and dark gaps. Nearest-filtered canvas textures preserve those edges on the loose plane and the (512 × 256px) photograph mantle. The (2,500) shader points are visible only during assembly. Material parameters and contact-shadow values are captured in the sidecar as implementation facts.
+Loose play uses a CPU-painted pixel field. Seeded samples at (1.9px) intervals become mostly (2 × 2px) hard grains with a brighter top-left pixel and dark gaps. A nearest-filtered canvas texture preserves those edges on the loose plane.
+
+Packed sand uses a separate body map (1536px wide) with fine brightness variation around each local photo color and a slight bump map. A fully rough standard material receives scene lighting and shadows. The opaque profile follows the inner glass through the shoulder and neck, with sand-colored support above the photograph. Height-based UVs contain the photograph once within the straight body band, using its circumference and height to preserve the image proportions. The top cap shares the packed material treatment. The (2,500) shader points are visible only during assembly. Material parameters and contact-shadow values are captured in the sidecar as implementation facts.
 
 **The Object Depth Rule.** Keep interface surfaces flat; express material depth through the bottle, cork, grains, plinth and scene contact shadow.
 
@@ -211,7 +213,9 @@ A single home link combines an outlined bottle mark, Chinese serif name and smal
 
 ### Bottle stage and motion
 
-The focusable stage retains vertical touch scrolling (`touch-action: pan-y`). In the loose state, pointer dragging stirs positions in the CPU-painted grain field and they settle back. Assembly lasts (2600ms): temporary flying points follow level-dependent smoothstep paths with an arc and swirl while the sealed mantle and cap rise from the bottom. The (32°) perspective camera has separate aspect-aware fits for the loose plane and sealed bottle, and blends between them during assembly.
+The focusable stage retains vertical touch scrolling (`touch-action: pan-y`). In the loose state, pointer dragging stirs positions in the CPU-painted grain field and they settle back. Assembly lasts (2600ms). Temporary flying points follow level-dependent smoothstep paths with an arc and swirl. An upward clipping plane reveals the full-size sand body, while the cap follows the fill height and profile radius.
+
+The (32°) perspective camera has separate aspect-aware fits for the loose plane and sealed bottle. Assembly blends both distance and elevation. The sealed camera sits above its look point by (0.45 × distance), compared with (0.094 × distance) in loose play. One projection covers the glass, cork, sand, plinth and contact shadow.
 
 A sealed bottle turns around its vertical axis while preserving the photograph. Arrow controls and the stage’s left/right keys each turn it by (π/5); pointer release uses bounded, decaying rotation inertia. Rendering stops when no interaction remains active.
 
@@ -233,5 +237,6 @@ All interactive elements use a clay focus outline (2px) with an offset (5px); th
 
 - **Don't** add card shadows or rounded floating panels to the currently flat interface.
 - **Don't** use the scene’s photo colors as competing interface accents.
-- **Don't** blur away the pixel grains, top-left highlights or dark gaps established by the grain reference.
-- **Don't** treat the user-provided grain reference as approval of the full rebuilt bottle.
+- **Don't** blur the loose field's hard pixel grains, top-left highlights or dark gaps.
+- **Don't** copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.
+- **Don't** treat the loose-grain reference or real-bottle photographs as user approval of the full bottle.

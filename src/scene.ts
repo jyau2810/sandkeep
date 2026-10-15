@@ -30,8 +30,9 @@ type Content = {
   grains: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
   field: GrainField;
   loose: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
-  mantle: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
-  cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  mantle: THREE.Mesh<THREE.LatheGeometry, THREE.MeshStandardMaterial>;
+  cap: THREE.Mesh<THREE.CircleGeometry, THREE.MeshStandardMaterial>;
+  fillPlane: THREE.Plane;
   source: HTMLCanvasElement;
   flat: Float32Array;
   target: Float32Array;
@@ -48,10 +49,17 @@ type Assembly = {
 };
 type Gesture = { id: number; x: number; y: number; lastX: number; horizontal: boolean };
 
-const radius = 0.91;
+const radius = 0.966;
 const bottom = -1.49;
-const bandHeight = Math.PI * radius;
-const top = bottom + bandHeight;
+const top = 1.20;
+const bandHeight = top - bottom;
+const sandBase = -1.535;
+const fillTop = 2.10;
+const sandProfile = [
+  [0, sandBase], [0.69, sandBase], [0.895, -1.506], [0.953, -1.43],
+  [0.963, -1.31], [radius, 1.20], [0.960, 1.35], [0.925, 1.52],
+  [0.805, 1.68], [0.626, 1.84], [0.463, 1.98], [0.425, 2.05], [0.422, fillTop],
+] as const;
 const flyingCount = 2500;
 const duration = 2600;
 
@@ -190,6 +198,80 @@ function fieldTexture(field: GrainField): THREE.CanvasTexture {
   return texture;
 }
 
+function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft): THREE.MeshStandardMaterial {
+  const width = source ? 1536 : 256;
+  const height = source ? Math.round(width * (fillTop - sandBase) / (Math.PI * 2 * radius)) : 256;
+  const canvas = makeCanvas(width, height);
+  const context = canvas.getContext('2d', { willReadFrequently: true })!;
+  context.fillStyle = '#bda17a';
+  context.fillRect(0, 0, width, height);
+  if (source) {
+    const photoHeight = Math.round(height * bandHeight / (fillTop - sandBase));
+    const photo = photoCanvas(source, width, photoHeight, draft.seamWidth);
+    context.drawImage(photo, 0, Math.round(height * (fillTop - top) / (fillTop - sandBase)));
+    photo.width = photo.height = 0;
+  }
+  const frame = context.getImageData(0, 0, width, height);
+  const bumpCanvas = makeCanvas(width, height);
+  const bumpContext = bumpCanvas.getContext('2d')!;
+  const bump = bumpContext.createImageData(width, height);
+  let seed = 173;
+  const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const index = (y * width + x) * 4;
+    const grain = rand();
+    const shade = 0.925 + grain * 0.15;
+    let r = frame.data[index];
+    let g = frame.data[index + 1];
+    let b = frame.data[index + 2];
+    if (draft.colorMode === 'warm') {
+      const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
+      const t = Math.max(0, Math.min(1, (lum - 0.08) * 1.16));
+      r = 49 + 196 * t;
+      g = 31 + 161 * t;
+      b = 19 + 111 * t;
+    }
+    frame.data[index] = r * shade;
+    frame.data[index + 1] = g * shade;
+    frame.data[index + 2] = b * shade;
+    const relief = 96 + grain * 64;
+    bump.data[index] = bump.data[index + 1] = bump.data[index + 2] = relief;
+    bump.data[index + 3] = 255;
+  }
+  context.putImageData(frame, 0, 0);
+  bumpContext.putImageData(bump, 0, 0);
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = 4;
+  map.wrapS = THREE.RepeatWrapping;
+  const bumpMap = new THREE.CanvasTexture(bumpCanvas);
+  bumpMap.wrapS = THREE.RepeatWrapping;
+  bumpMap.anisotropy = 4;
+  return new THREE.MeshStandardMaterial({
+    map, bumpMap, bumpScale: 0.008, roughness: 1, metalness: 0,
+    color: 0xbebebe, envMapIntensity: 0.14,
+  });
+}
+
+function packedSandGeometry(): THREE.LatheGeometry {
+  const curve = new THREE.CatmullRomCurve3(sandProfile.map(([r, y]) => new THREE.Vector3(r, y, 0)), false, 'centripetal');
+  const profile = curve.getPoints(160).map(point => new THREE.Vector2(THREE.MathUtils.clamp(point.x, 0, radius), point.y));
+  const geometry = new THREE.LatheGeometry(profile, 160);
+  const positions = geometry.getAttribute('position');
+  const uv = geometry.getAttribute('uv');
+  for (let index = 0; index < positions.count; index++) uv.setY(index, (positions.getY(index) - sandBase) / (fillTop - sandBase));
+  return geometry;
+}
+
+function sandRadiusAt(y: number): number {
+  for (let index = 2; index < sandProfile.length; index++) {
+    const [r, level] = sandProfile[index];
+    const [previousR, previousLevel] = sandProfile[index - 1];
+    if (y <= level) return THREE.MathUtils.lerp(previousR, r, THREE.MathUtils.clamp((y - previousLevel) / (level - previousLevel), 0, 1));
+  }
+  return sandProfile[sandProfile.length - 1][0];
+}
+
 function grainMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     uniforms: { pointScale: { value: 750 } },
@@ -283,6 +365,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.localClippingEnabled = true;
   host.append(canvas);
 
   const resources = new Set<{ dispose(): void }>();
@@ -363,10 +446,6 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   corkBevel.position.y = 2.595;
   vessel.add(corkBevel);
 
-  const coreMaterial = retain(new THREE.MeshBasicMaterial({ color: 0x302922, toneMapped: false }));
-  const core = new THREE.Mesh(retain(new THREE.CylinderGeometry(radius - 0.015, radius - 0.015, bandHeight, 128, 1)), coreMaterial);
-  core.position.y = (bottom + top) / 2;
-  bottle.add(core);
   const plinth = new THREE.Mesh(retain(new THREE.CylinderGeometry(1.4, 1.46, 0.12, 128)), retain(new THREE.MeshStandardMaterial({
     color: 0xcabc9f, roughness: 0.82, envMapIntensity: 0.24,
   })));
@@ -420,7 +499,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const looseDistance = Math.max(9.4, 1.5 + 11.03 / camera.aspect);
     const blend = assemblyProgress === undefined ? (mode === 'sealed' ? 1 : 0) : assemblyProgress * assemblyProgress * (3 - 2 * assemblyProgress);
     const distance = looseDistance * (1 - blend) + sealedDistance * blend;
-    camera.position.set(0, 0.32 + distance * 0.094, distance);
+    const elevation = THREE.MathUtils.lerp(0.094, 0.45, blend);
+    camera.position.set(0, 0.32 + distance * elevation, distance);
     camera.lookAt(0, 0.32, 0);
     camera.updateProjectionMatrix();
   }
@@ -456,6 +536,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     for (const mesh of [value.loose, value.mantle, value.cap]) {
       mesh.geometry.dispose();
       mesh.material.map?.dispose();
+      if (mesh.material instanceof THREE.MeshStandardMaterial) mesh.material.bumpMap?.dispose();
       mesh.material.dispose();
     }
     value.field.canvas.width = value.field.canvas.height = 0;
@@ -476,15 +557,15 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   function applyPresentation(next: Presentation): void {
     mode = next;
     canvas.style.cursor = next === 'sealed' ? 'grab' : 'crosshair';
-    vessel.visible = core.visible = plinth.visible = shadow.visible = next === 'sealed';
+    vessel.visible = plinth.visible = shadow.visible = next === 'sealed';
     if (!content) return;
     content.grains.visible = false;
     content.loose.visible = next === 'loose';
     content.mantle.visible = content.cap.visible = next === 'sealed';
     if (next === 'sealed') {
-      core.scale.y = content.mantle.scale.y = 1;
-      core.position.y = content.mantle.position.y = (bottom + top) / 2;
-      content.cap.position.y = top;
+      content.fillPlane.constant = fillTop;
+      content.cap.position.y = fillTop;
+      content.cap.scale.setScalar(sandRadiusAt(fillTop));
     } else resetLoose();
     resize();
   }
@@ -507,11 +588,12 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     content.loose.visible = progress < 0.14;
     content.grains.visible = progress >= 0.08 && progress < 0.97;
     vessel.visible = plinth.visible = shadow.visible = progress > 0.12;
-    core.visible = content.mantle.visible = content.cap.visible = progress > 0.3;
+    content.mantle.visible = content.cap.visible = progress > 0.3;
     const fill = Math.max(0.001, Math.min(1, (progress - 0.28) / 0.67));
-    core.scale.y = content.mantle.scale.y = fill;
-    core.position.y = content.mantle.position.y = bottom + bandHeight * fill / 2;
-    content.cap.position.y = bottom + bandHeight * fill;
+    const level = sandBase + (fillTop - sandBase) * fill;
+    content.fillPlane.constant = level;
+    content.cap.position.y = level;
+    content.cap.scale.setScalar(sandRadiusAt(level));
     const positions = content.grains.geometry.getAttribute('position') as THREE.BufferAttribute;
     const values = positions.array as Float32Array;
     for (let i = 0; i < content.count; i++) {
@@ -628,20 +710,19 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       map: fieldTexture(field), toneMapped: false,
     }));
     loose.position.set(0, 0.28, 1.5);
-    const mantleField = grainField(source, 512, 256, draft, draft.seamWidth);
-    const mantle = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, bandHeight, 160, 1, true), new THREE.MeshBasicMaterial({
-      map: fieldTexture(mantleField), toneMapped: false,
-    }));
-    mantle.position.y = (bottom + top) / 2;
+    const mantleMaterial = packedSandMaterial(source, draft);
+    const fillPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), fillTop);
+    mantleMaterial.clippingPlanes = [fillPlane];
+    mantleMaterial.clipShadows = true;
+    const mantle = new THREE.Mesh(packedSandGeometry(), mantleMaterial);
     mantle.rotation.y = Math.PI;
-    const capSource = makeCanvas(128, 128);
-    const capCtx = capSource.getContext('2d')!;
-    capCtx.fillStyle = '#c2a479'; capCtx.fillRect(0, 0, 128, 128);
-    const capField = grainField(capSource, 128, 128, draft);
-    capSource.width = capSource.height = 0;
-    const cap = new THREE.Mesh(new THREE.CircleGeometry(radius, 96), new THREE.MeshBasicMaterial({ map: fieldTexture(capField), toneMapped: false }));
+    mantle.castShadow = true;
+    mantle.receiveShadow = true;
+    const cap = new THREE.Mesh(new THREE.CircleGeometry(1, 96), packedSandMaterial(null, draft));
     cap.rotation.x = -Math.PI / 2;
-    cap.position.y = top;
+    cap.position.y = fillTop;
+    cap.scale.setScalar(sandRadiusAt(fillTop));
+    cap.receiveShadow = true;
     const flat = new Float32Array(flyingCount * 3);
     const target = new Float32Array(flyingCount * 3);
     const colors = new Float32Array(flyingCount * 3);
@@ -674,7 +755,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     grains.frustumCulled = false;
     const group = new THREE.Group();
     group.add(grains, loose, mantle, cap);
-    return { draft, grains, field, loose, mantle, cap, source, flat, target, count: flyingCount, group };
+    return { draft, grains, field, loose, mantle, cap, fillPlane, source, flat, target, count: flyingCount, group };
   }
 
   async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
@@ -806,7 +887,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   canvas.addEventListener('pointercancel', onPointerUp);
   canvas.addEventListener('webglcontextlost', onContextLost);
   document.addEventListener('visibilitychange', onVisibility);
-  vessel.visible = core.visible = plinth.visible = shadow.visible = false;
+  vessel.visible = plinth.visible = shadow.visible = false;
   resize();
 
   return {

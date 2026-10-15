@@ -37,7 +37,7 @@ Desktop browsers and mobile browsers. An individual competition entry links to t
 
 ## Brand commitments
 
-The provisional implementation name is 砂藏, Sandkeep. It has not been finalized by the user. UI copy is Chinese. The user approved the earlier granular-image experiment and the physical sand-bottle metaphor. The supplied cat sand screenshot is the explicit grain-style reference: crisp fine grains, dark gaps and recognizable contours.
+The provisional implementation name is 砂藏, Sandkeep. It has not been finalized by the user. UI copy is Chinese. The user approved the earlier granular-image experiment and the physical sand-bottle metaphor. The supplied cat screenshot remains the loose-sand interaction reference. The latest user feedback says the third version is much better, but its sealed perspective, volume and black speckles still feel wrong. Real bottled-sand photographs in docs/visual-references.md now guide the packed material: dense fine local-color grains, a filled profile, rough directional shading and coherent perspective. No full-bottle visual acceptance is assumed.
 
 ## Evidence on hand
 

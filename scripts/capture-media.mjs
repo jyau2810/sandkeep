@@ -15,6 +15,7 @@ async function ready(page, phase = 'sealed') {
   await page.locator(`#app[data-phase="${phase}"]`).waitFor();
   await page.waitForLoadState('networkidle');
   await page.evaluate(() => document.fonts.ready);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 try {

@@ -34,6 +34,8 @@ npm run preview
 
 第一版暂不提供瓶子文件下载或跨设备分享。内置猫咪示例由代码绘制，字体与第三方代码来源见 [素材来源](docs/attribution.md)。
 
+装瓶材质的 [实物参考与调整依据](docs/visual-references.md) 保存在工程中。
+
 ## 项目结构
 
 - `src/domain.ts` 定义可保存的瓶子数据。
