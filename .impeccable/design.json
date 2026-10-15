@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T13:54:22.948731+00:00",
+  "generatedAt": "2026-10-15T14:53:10.507321+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -277,13 +277,13 @@
       },
       {
         "name": "photo-mantle",
-        "value": "1536×920 CanvasTexture; local-color shade=.925+grain*.15; bumpScale:.008; MeshStandardMaterial color:0xbebebe; roughness:1; metalness:0; envMapIntensity:.14; map and bumpMap anisotropy:4; LatheGeometry radial segments:160; maximum radius:.966; y:-1.535 to 2.10; rotationY:PI",
-        "purpose": "Opaque packed sand follows the inner glass through shoulder and neck and receives lighting and shadows. Height-based UVs contain the photo once in the straight band from y=-1.49 to 1.20, preserving proportions against the actual circumference and height. Sand-colored support fills the remaining surface; seam width is applied before the fine noise and bump maps."
+        "value": "1536×~920 color and tangent-normal CanvasTextures; seeded LCG:173; irregular hull sides:5–7; tilted crown and bevel faces; grain pitch:8.6px; local-color base:.76; contact-shadow color:.43, coverage:.34, offset:(.65,.85), blur:.6; MeshStandardMaterial color:0xbebebe; normalScale:(.9,.9); roughness:.94; metalness:0; envMapIntensity:.14; map and normalMap wrapS:RepeatWrapping, anisotropy:4; no bumpMap; material dispose owns normalMap.dispose; LatheGeometry radial segments:160; maximum radius:.966; y:-1.535 to 2.10; rotationY:PI",
+        "purpose": "Opaque packed sand follows the inner glass through shoulder and neck and receives lighting and shadows. Height-based UVs contain the photo once in the straight band from y=-1.49 to 1.20, preserving proportions against the actual circumference and height. Sand-colored support fills the remaining surface. Seam width is applied before the grain color and normal atlases. Rasterized hull, crown and bevel faces define grain color and normals without per-grain mesh geometry or grain collisions."
       },
       {
         "name": "packed-sand-cap",
-        "value": "256×256 local-color noise and bump CanvasTextures over #bda17a; MeshStandardMaterial color:0xbebebe; roughness:1; metalness:0; bumpScale:.008; envMapIntensity:.14; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(level)",
-        "purpose": "A sand-colored top cap matches the packed body material. It follows the clipping plane during assembly and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core."
+        "value": "256×256 color and tangent-normal CanvasTextures over #bda17a; seeded LCG:173; irregular hull sides:5–7; tilted crown and bevel faces; grain pitch:4.4px; local-color base:.76; contact-shadow color:.43, coverage:.34, offset:(.65,.85), blur:.6; MeshStandardMaterial color:0xbebebe; normalScale:(.9,.9); roughness:.94; metalness:0; envMapIntensity:.14; map and normalMap wrapS:RepeatWrapping, anisotropy:4; no bumpMap; material dispose owns normalMap.dispose; CircleGeometry radius:1; rotationX:-PI/2; scaled by sandRadiusAt(level)",
+        "purpose": "A sand-colored top cap matches the packed body material, with the same rasterized grain color and crown and bevel normals at a smaller texture pitch. It follows the clipping plane during assembly and rests at y=2.10 in the sealed state. The opaque body and cap form the sand volume without a separate dark core. The cap has no per-grain mesh geometry or grain collisions."
       },
       {
         "name": "assembly-grains",
@@ -310,10 +310,11 @@
         "docs/architecture.md",
         "docs/visual-references.md"
       ],
-      "authority": "The user-provided cat grain reference guides loose play only. Smithsonian and Petra photographs in docs/visual-references.md guide the packed material, filled profile and perspective. The interface and bottle remain code-led. The latest user feedback requested further correction; no full-bottle acceptance is claimed.",
+      "authority": "The user-provided cat grain reference guides loose play only. Smithsonian and Petra photographs in docs/visual-references.md guide the packed material, filled profile and perspective. The interface and bottle remain code-led. The user rejected the earlier smoother sand, selected B's independent irregular grains, then requested stronger grain depth. The current crown and bevel normals follow that direction. B is the selected direction, not acceptance of the current strength or the full bottle.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
       "notCanonized": "The build carries 8–11px ancillary text in several contexts. Those sizes are captured only where needed to reproduce actual snippets, not promoted into a universal legibility rule. No browser or visual verification was performed by this documentation pass.",
-      "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule."
+      "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
+      "reviewEvidence": "Fresh actual captures in .impeccable/review/visible-grains cover desktop:1440×900, mobile:390×844 and user-590:590×1293. physical-capture.json records no overflow or errors at those viewports. The independent finish review returned ship with no fixes. This is review evidence, not user acceptance. This documentation pass did not reopen the browser."
     },
     "camera": [
       {
@@ -395,7 +396,7 @@
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.\n\nThis system is extracted from the rebuilt application. The user-provided cat grain reference guides loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide the dense packed sand, filled profile and perspective. The interface and bottle remain a code-led interpretation. The name 砂藏 / Sandkeep is provisional, and the user has not accepted the full bottle. Reflective glass, textured cork, dense fine-grain sand and a contact shadow describe the current rendering choices without claiming photorealism.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the vivid color; the surrounding interface stays low in chroma.\n\nThis system is extracted from the rebuilt application. The user-provided cat grain reference guides loose play. The Smithsonian and Petra photographs recorded in [Visual references](docs/visual-references.md) guide the dense packed sand, filled profile and perspective. The interface and bottle remain a code-led interpretation. The user rejected the earlier smoother sand, selected B's independent irregular grains, then requested stronger grain depth. The current crown and bevel normals follow that direction. B is the selected direction, not acceptance of the current strength or the full bottle. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the current rendering choices without claiming photorealism.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a colorful personal photograph.",
       "Chinese serif display type paired with Chinese system sans controls.",

@@ -199,6 +199,8 @@ function fieldTexture(field: GrainField): THREE.CanvasTexture {
 }
 
 function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft): THREE.MeshStandardMaterial {
+  type Vertex = [x: number, y: number, height: number];
+  type Mineral = [red: number, green: number, blue: number];
   const width = source ? 1536 : 256;
   const height = source ? Math.round(width * (fillTop - sandBase) / (Math.PI * 2 * radius)) : 256;
   const canvas = makeCanvas(width, height);
@@ -211,19 +213,16 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
     context.drawImage(photo, 0, Math.round(height * (fillTop - top) / (fillTop - sandBase)));
     photo.width = photo.height = 0;
   }
-  const frame = context.getImageData(0, 0, width, height);
-  const bumpCanvas = makeCanvas(width, height);
-  const bumpContext = bumpCanvas.getContext('2d')!;
-  const bump = bumpContext.createImageData(width, height);
+  const photo = context.getImageData(0, 0, width, height);
+  const base = context.createImageData(width, height);
+  const normalCanvas = makeCanvas(width, height);
+  const normalContext = normalCanvas.getContext('2d')!;
+  const normals = normalContext.createImageData(width, height);
   let seed = 173;
   const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const index = (y * width + x) * 4;
-    const grain = rand();
-    const shade = 0.925 + grain * 0.15;
-    let r = frame.data[index];
-    let g = frame.data[index + 1];
-    let b = frame.data[index + 2];
+  const sample = (x: number, y: number): Mineral => {
+    const index = (Math.max(0, Math.min(height - 1, y | 0)) * width + ((x | 0) % width + width) % width) * 4;
+    let r = photo.data[index], g = photo.data[index + 1], b = photo.data[index + 2];
     if (draft.colorMode === 'warm') {
       const lum = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 255;
       const t = Math.max(0, Math.min(1, (lum - 0.08) * 1.16));
@@ -231,26 +230,134 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
       g = 31 + 161 * t;
       b = 19 + 111 * t;
     }
-    frame.data[index] = r * shade;
-    frame.data[index + 1] = g * shade;
-    frame.data[index + 2] = b * shade;
-    const relief = 96 + grain * 64;
-    bump.data[index] = bump.data[index + 1] = bump.data[index + 2] = relief;
-    bump.data[index + 3] = 255;
+    return [r, g, b];
+  };
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const index = (y * width + x) * 4;
+    const color = sample(x, y);
+    base.data[index] = color[0] * 0.76;
+    base.data[index + 1] = color[1] * 0.76;
+    base.data[index + 2] = color[2] * 0.76;
+    base.data[index + 3] = 255;
+    normals.data[index] = normals.data[index + 1] = 128;
+    normals.data[index + 2] = normals.data[index + 3] = 255;
   }
-  context.putImageData(frame, 0, 0);
-  bumpContext.putImageData(bump, 0, 0);
+  const triangle = (a: Vertex, b: Vertex, c: Vertex, color: Mineral, gain: number) => {
+    const ax = a[0], ay = a[1], bx = b[0], by = b[1], cx = c[0], cy = c[1];
+    const area = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    if (Math.abs(area) < 0.001) return;
+    const direction = area < 0 ? -1 : 1;
+    const dx0 = (ay - by) * direction, dy0 = (bx - ax) * direction;
+    const dx1 = (by - cy) * direction, dy1 = (cx - bx) * direction;
+    const dx2 = (cy - ay) * direction, dy2 = (ax - cx) * direction;
+    const slopeX = ((b[2] - a[2]) * (cy - ay) - (c[2] - a[2]) * (by - ay)) / area;
+    const slopeY = ((bx - ax) * (c[2] - a[2]) - (cx - ax) * (b[2] - a[2])) / area;
+    const length = Math.sqrt(slopeX * slopeX + slopeY * slopeY + 1);
+    const nx = (1 - slopeX / length) * 127.5;
+    const ny = (1 + slopeY / length) * 127.5;
+    const nz = (1 + 1 / length) * 127.5;
+    const left = Math.max(0, Math.floor(Math.min(ax, bx, cx)));
+    const right = Math.min(width - 1, Math.floor(Math.max(ax, bx, cx)));
+    const first = Math.max(0, Math.floor(Math.min(ay, by, cy)));
+    const last = Math.min(height - 1, Math.floor(Math.max(ay, by, cy)));
+    for (let y = first; y <= last; y++) {
+      let e0 = ((bx - ax) * (y + 0.25 - ay) - (by - ay) * (left + 0.25 - ax)) * direction;
+      let e1 = ((cx - bx) * (y + 0.25 - by) - (cy - by) * (left + 0.25 - bx)) * direction;
+      let e2 = ((ax - cx) * (y + 0.25 - cy) - (ay - cy) * (left + 0.25 - cx)) * direction;
+      for (let x = left; x <= right; x++, e0 += dx0, e1 += dx1, e2 += dx2) {
+        const coverage = (Number(e0 >= 0 && e1 >= 0 && e2 >= 0)
+          + Number(e0 + dx0 * 0.5 >= 0 && e1 + dx1 * 0.5 >= 0 && e2 + dx2 * 0.5 >= 0)
+          + Number(e0 + dy0 * 0.5 >= 0 && e1 + dy1 * 0.5 >= 0 && e2 + dy2 * 0.5 >= 0)
+          + Number(e0 + (dx0 + dy0) * 0.5 >= 0 && e1 + (dx1 + dy1) * 0.5 >= 0 && e2 + (dx2 + dy2) * 0.5 >= 0)) * 0.25;
+        if (!coverage) continue;
+        const index = (y * width + x) * 4;
+        base.data[index] += (color[0] * gain - base.data[index]) * coverage;
+        base.data[index + 1] += (color[1] * gain - base.data[index + 1]) * coverage;
+        base.data[index + 2] += (color[2] * gain - base.data[index + 2]) * coverage;
+        normals.data[index] += (nx - normals.data[index]) * coverage;
+        normals.data[index + 1] += (ny - normals.data[index + 1]) * coverage;
+        normals.data[index + 2] += (nz - normals.data[index + 2]) * coverage;
+      }
+    }
+  };
+  const contact = (hull: Vertex[], color: Mineral) => {
+    const offsetX = 0.65, offsetY = 0.85, blur = 0.6;
+    const left = Math.max(0, Math.floor(Math.min(...hull.map(point => point[0])) + offsetX - 2));
+    const right = Math.min(width - 1, Math.ceil(Math.max(...hull.map(point => point[0])) + offsetX + 2));
+    const first = Math.max(0, Math.floor(Math.min(...hull.map(point => point[1])) + offsetY - 2));
+    const last = Math.min(height - 1, Math.ceil(Math.max(...hull.map(point => point[1])) + offsetY + 2));
+    for (let y = first; y <= last; y++) for (let x = left; x <= right; x++) {
+      const px = x + 0.5 - offsetX, py = y + 0.5 - offsetY;
+      let inside = false;
+      let distanceSquared = Infinity;
+      for (let i = 0; i < hull.length; i++) {
+        const a = hull[i], b = hull[(i + 1) % hull.length];
+        if ((a[1] > py) !== (b[1] > py) && px < (b[0] - a[0]) * (py - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+        const dx = b[0] - a[0], dy = b[1] - a[1];
+        const t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / (dx * dx + dy * dy)));
+        distanceSquared = Math.min(distanceSquared, (px - a[0] - dx * t) ** 2 + (py - a[1] - dy * t) ** 2);
+      }
+      const coverage = 0.34 * (inside ? 1 : Math.exp(-distanceSquared / (2 * blur * blur)));
+      if (coverage < 0.01) continue;
+      const index = (y * width + x) * 4;
+      base.data[index] += (color[0] * 0.43 - base.data[index]) * coverage;
+      base.data[index + 1] += (color[1] * 0.43 - base.data[index + 1]) * coverage;
+      base.data[index + 2] += (color[2] * 0.43 - base.data[index + 2]) * coverage;
+    }
+  };
+  const pitch = source ? 8.6 : 4.4;
+  for (let y = -pitch; y < height + pitch; y += pitch) for (let x = -pitch; x < width + pitch; x += pitch) {
+    const px = x + (rand() - 0.5) * pitch * 0.86;
+    const py = y + (rand() - 0.5) * pitch * 0.86;
+    const size = pitch * (0.44 + rand() * 0.29);
+    const stretch = 0.76 + rand() * 0.52;
+    const rotation = rand() * Math.PI * 2;
+    const shade = 0.9 + rand() * 0.24;
+    const color = sample(px, py);
+    const sides = 5 + Math.floor(rand() * 3);
+    const hull: Vertex[] = [];
+    const crown: Vertex[] = [];
+    const centerX = px - size * 0.1, centerY = py - size * 0.12;
+    const peak = size * (0.42 + rand() * 0.16);
+    const tiltX = (rand() - 0.5) * 0.48, tiltY = (rand() - 0.5) * 0.48;
+    const rimHeight = size * 0.06;
+    for (let side = 0; side < sides; side++) {
+      const angle = rotation + (side + (rand() - 0.5) * 0.32) / sides * Math.PI * 2;
+      const reach = size * (0.8 + rand() * 0.28);
+      const ax = px + Math.cos(angle) * reach * stretch;
+      const ay = py + Math.sin(angle) * reach / stretch;
+      const inset = 0.43 + rand() * 0.17;
+      const bx = centerX + (ax - centerX) * inset;
+      const by = centerY + (ay - centerY) * inset;
+      hull.push([ax, ay, rimHeight]);
+      crown.push([bx, by, peak + (bx - centerX) * tiltX + (by - centerY) * tiltY]);
+    }
+    contact(hull, color);
+    for (let side = 0; side < sides; side++) {
+      const next = (side + 1) % sides;
+      const a = hull[side], b = hull[next];
+      const light = ((a[0] + b[0]) * 0.5 - px) * -0.09 / size + ((a[1] + b[1]) * 0.5 - py) * -0.13 / size;
+      const gain = shade * (0.91 + light);
+      triangle(crown[side], a, b, color, gain);
+      triangle(crown[side], b, crown[next], color, gain);
+      triangle([centerX, centerY, peak], crown[side], crown[next], color, shade * 1.035);
+    }
+  }
+  context.putImageData(base, 0, 0);
+  normalContext.putImageData(normals, 0, 0);
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 4;
   map.wrapS = THREE.RepeatWrapping;
-  const bumpMap = new THREE.CanvasTexture(bumpCanvas);
-  bumpMap.wrapS = THREE.RepeatWrapping;
-  bumpMap.anisotropy = 4;
-  return new THREE.MeshStandardMaterial({
-    map, bumpMap, bumpScale: 0.008, roughness: 1, metalness: 0,
-    color: 0xbebebe, envMapIntensity: 0.14,
+  map.anisotropy = 4;
+  const normalMap = new THREE.CanvasTexture(normalCanvas);
+  normalMap.wrapS = THREE.RepeatWrapping;
+  normalMap.anisotropy = 4;
+  const material = new THREE.MeshStandardMaterial({
+    map, normalMap, normalScale: new THREE.Vector2(0.9, 0.9),
+    roughness: 0.94, metalness: 0, color: 0xbebebe, envMapIntensity: 0.14,
   });
+  material.addEventListener('dispose', () => normalMap.dispose());
+  return material;
 }
 
 function packedSandGeometry(): THREE.LatheGeometry {
