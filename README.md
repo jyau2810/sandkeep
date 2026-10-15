@@ -4,6 +4,8 @@
 
 砂藏将照片变成彩砂，收进一只可旋转的玻璃瓶。照片环绕瓶身，左右拖动才能看完。它是一件可以在浏览器里制作、把玩的小藏品。
 
+[打开砂藏](https://jyau2810.github.io/sandkeep/)
+
 ## 本地开发
 
 需要 Node.js 24 和 npm。
@@ -24,7 +26,7 @@ npm run preview
 
 工作流位于 `.github/workflows/pages.yml`，推送到 `main` 后构建并发布。仓库的 Settings → Pages → Source 需设置为 GitHub Actions。
 
-仓库地址为 [jyau2810/sandkeep](https://github.com/jyau2810/sandkeep)。正式体验地址与验收结果见 [参赛材料](submission/README.md)。
+仓库地址为 [jyau2810/sandkeep](https://github.com/jyau2810/sandkeep)。GitHub Pages 已启用 GitHub Actions 发布。报名文案、正式体验地址和素材见 [参赛材料](submission/README.md)。
 
 ## 照片与隐私
 
