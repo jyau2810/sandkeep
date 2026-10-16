@@ -59,7 +59,7 @@ export function parseDraft(value: unknown): BottleDraft | null {
     const state = new DataView(d.sandState.buffer, d.sandState.byteOffset, d.sandState.byteLength);
     for (let i = 0; i < state.byteLength; i += 28) {
       const x = state.getFloat64(i, true), y = state.getFloat64(i + 8, true), density = state.getFloat64(i + 16, true);
-      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(density) || x < 0 || x > 720 || y < 0 || y > 432 || density < 0 || density > 16) return null;
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(density) || x < 0 || x > 720 || y < 0 || y > 432 || density < 0 || density > 1e9) return null;
     }
   }
   return {

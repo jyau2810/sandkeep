@@ -213,10 +213,11 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   function tick(now: number): void {
     animation = 0;
     if (!active || disposed || document.hidden) return;
-    const dt = clamp((now - lastTime) / 16.667, 0.2, 2);
+    const elapsedFrames = clamp((now - lastTime) / 16.667, 0.2, 12);
+    const dt = Math.min(2, elapsedFrames);
     lastTime = now;
     const spinning = (pointer !== null && tool === 'swirl') || now < spinUntil;
-    if (pointer && tool === 'sprinkle') sprinkle(pointer.x, pointer.y, Math.ceil(brushRadius * brushRadius * 0.025 * dt));
+    if (pointer && tool === 'sprinkle') sprinkle(pointer.x, pointer.y, Math.ceil(brushRadius * brushRadius * 0.025 * elapsedFrames));
     const activeStrokes = strokes.splice(0);
     moving = false;
     if (restoreTime >= 0) {
@@ -314,18 +315,33 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     if (id !== undefined && canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
   }
 
+  // Preserve the original particles for exact restoration. Coalesce only added
+  // grains within 2.5px cells, retaining their mass rather than reducing output.
+  function compactAddedSand(): void {
+    const cells = new Map<number, Grain>();
+    for (let i = originalGrains.length; i < grains.length; i++) {
+      const grain = grains[i];
+      const key = Math.floor(grain.y / 2.5) * 289 + Math.floor(grain.x / 2.5);
+      const held = cells.get(key);
+      if (!held) cells.set(key, { ...grain });
+      else {
+        const mass = held.density + grain.density;
+        held.x = (held.x * held.density + grain.x * grain.density) / mass;
+        held.y = (held.y * held.density + grain.y * grain.density) / mass;
+        held.density = mass;
+      }
+    }
+    grains.length = originalGrains.length;
+    for (const grain of cells.values()) grains.push(grain);
+  }
+
   function sprinkle(x: number, y: number, amount: number): void {
     const requested = amount * sprinkleDensity + sprinkleRemainder;
     amount = Math.floor(requested);
     sprinkleRemainder = requested - amount;
     edited = true;
-    if (grains.length >= 150000) {
-      for (const grain of grains) {
-        const d = Math.hypot(grain.x - x, grain.y - y) / brushRadius;
-        if (d < 1) grain.density = Math.min(16, grain.density + (1 - d) * amount / (brushRadius * brushRadius) * 0.4);
-      }
-    }
-    for (let i = 0; i < amount && grains.length < 150000; i++) {
+    for (let i = 0; i < amount; i++) {
+      if (grains.length >= 150000) compactAddedSand();
       const angle = rand() * Math.PI * 2;
       const distance = Math.sqrt(rand()) * brushRadius;
       const px = clamp(x + Math.cos(angle) * distance, 1, width - 3);
@@ -423,10 +439,10 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       syncActivity();
     },
     setSprinkleDensity(value): void {
-      if (Number.isFinite(value)) sprinkleDensity = clamp(value, 10, 200) / 100;
+      if (Number.isFinite(value)) sprinkleDensity = clamp(value, 10, 100) / 100;
     },
     setBrushRadius(radius): void {
-      if (Number.isFinite(radius)) brushRadius = clamp(radius, 8, 64);
+      if (Number.isFinite(radius)) brushRadius = clamp(radius, 8, 32);
     },
     setTool(next): void {
       if (disposed) return;
