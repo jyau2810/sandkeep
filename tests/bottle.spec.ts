@@ -433,7 +433,13 @@ test('sand pours into the frame and the tilted frame drains downward while repea
   await expect(stage).toHaveAttribute('data-presentation', 'assembling');
   await expectVisibleTransfer(page);
   expect(await flatPicture(page)).not.toBe(fullPainting);
-  await page.clock.runFor(3000);
+  await page.clock.runFor(1000);
+  await expectVisibleTransfer(page);
+  expect(await depositedPixels(page, emptyFrame)).toBeGreaterThan(10000);
+  await page.clock.runFor(500);
+  await expectVisibleTransfer(page);
+  expect(await depositedPixels(page, emptyFrame)).toBeGreaterThan(1000);
+  await page.clock.runFor(1500);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeVisible();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
