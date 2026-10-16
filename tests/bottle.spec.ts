@@ -1,8 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import type { BottleDraft } from '../src/domain';
 
-async function openDemo(page: Page): Promise<void> {
+async function openDemo(page: Page, advanceClock = false): Promise<void> {
   await page.goto('./');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose', { timeout: 15000 });
+  await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
+  if (advanceClock) await page.clock.runFor(4100);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 15000 });
   await expect(page.getByRole('button', { name: '倒出成画', exact: true })).toBeEnabled();
   await page.waitForLoadState('networkidle');
@@ -66,7 +69,7 @@ async function latestBottle(page: Page): Promise<BottleDraft> {
 
 async function pauseReadyScene(page: Page): Promise<void> {
   await page.clock.install();
-  await openDemo(page);
+  await openDemo(page, true);
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
 }
 
@@ -164,12 +167,12 @@ test('a personal photo becomes a warm bottle and survives reopening without a na
   await expect.poll(async () => (await latestBottle(page))?.colorMode).toBe('warm');
   await expect(page.getByTestId('app-status')).toBeHidden();
   await page.reload();
-  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(page.getByRole('textbox')).toHaveCount(0);
   expect(await latestBottle(page)).toMatchObject({ colorMode: 'warm', imageDataUrl: selectedPhoto });
-  await expect(page.getByText('轻轻拨动，玩一会儿沙', { exact: true })).toBeHidden();
+  await expect(page.getByText('轻轻拨动，玩一会儿沙', { exact: true })).toBeVisible();
   await expect(thumbnail).toHaveAttribute('src', selectedPhoto!);
-  await expect(page.getByText('拖动旋转 · 双击回正', { exact: true })).toBeVisible();
+  await expect(page.getByText('拖动旋转 · 双击回正', { exact: true })).toBeHidden();
 });
 
 test('a saved original-colour bottle reopens as warm sand without losing its photo or settings', async ({ page }) => {
@@ -379,7 +382,7 @@ test('vertical and diagonal bottle drags rotate the object and Home restores its
 
 test('small vertical drift preserves horizontal rotation and reset animates through intermediate poses', async ({ page }) => {
   await page.clock.install();
-  await openDemo(page);
+  await openDemo(page, true);
   await page.clock.pauseAt(new Date(Date.now() + 1000));
   const canvas = page.locator('canvas.bottle-canvas');
   const stage = page.getByTestId('bottle-scene');
@@ -422,7 +425,7 @@ test('small vertical drift preserves horizontal rotation and reset animates thro
 test('continuous sand range changes stroke width without resetting the painting', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install();
-  await openDemo(page);
+  await openDemo(page, true);
   const range = page.getByRole('slider', { name: '作用范围' });
   await expect(range).toBeHidden();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
@@ -497,8 +500,7 @@ test('sprinkled and pushed sand survives bottling, pouring and reload while rest
   expect((await bottlePicture()).equals(bottleBefore)).toBe(false);
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   expect(await flatPicture(page)).toBe(edited);
-  await page.reload(); await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
-  await page.getByRole('button', { name: '倒出成画', exact: true }).click();
+  await page.reload(); await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   expect(await flatPicture(page)).toBe(edited);
   await page.getByRole('button', { name: '复原', exact: true }).click();
   expect(await flatPicture(page)).toBe(original);
@@ -762,7 +764,7 @@ test('pouring falls below the mouth into the frame after any bottle rotation', a
   let reference: { x: number; top: number; receivingBottom: number } | null = null;
   await page.clock.install();
   for (const [turns, tilts] of [[0, 0], [2, 0], [5, 0], [2, 2], [1, 5]]) {
-    await openDemo(page);
+    await openDemo(page, true);
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
     const stage = page.getByTestId('bottle-scene');
     await stage.focus();

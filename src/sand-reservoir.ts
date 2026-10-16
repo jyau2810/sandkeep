@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bottleMass, sampleAssembly, sandNoise, unit, type SandTransferPlan } from './sand-motion';
+import { eased, sampleAssembly, sandNoise, unit, type SandTransferPlan } from './sand-motion';
 
 type Reservoir = {
   object: THREE.Group;
@@ -174,10 +174,13 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
   let held: SandTransferPlan | null = null;
   let particles: Particle[] = [];
   let positions = new Float32Array(0);
-  let gravityHeights = new Float32Array(0);
+  let exitRoutes: number[] = [];
+  let routeOrder: number[] = [];
+  let routesAssigned = false;
 
   function prepare(plan: SandTransferPlan): void {
     held = plan;
+    routesAssigned = false;
     particles = [];
     const colors: number[] = [];
     const sizes: number[] = [];
@@ -210,7 +213,8 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
       colors.push(color.r, color.g, color.b);
       sizes.push(0.83 + sandNoise(index + 71) * 0.5);
     }
-    gravityHeights = new Float32Array(particles.length);
+    exitRoutes = particles.map(p => p.routeIndex);
+    routeOrder = [...exitRoutes].sort((a, b) => plan.grains[a].mouth - plan.grains[b].mouth);
     if (positions.length !== particles.length * 3) {
       positions = new Float32Array(particles.length * 3);
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
@@ -232,38 +236,45 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
       object.getWorldQuaternion(quaternion);
       gravity.set(0, -1, 0).applyQuaternion(quaternion.invert());
       const assembly = plan.kind === 'assemble' ? sampleAssembly(plan, progress) : null;
-      const mass = assembly ? assembly.settled : bottleMass(plan, progress);
       material.uniforms.pointLimits.value.set(assembly ? 0.45 : 1.35, assembly ? 1.2 : 4.8);
-      if (assembly) drawPacked(mass, progress);
+      if (assembly) drawPacked(assembly.settled, progress);
       else fill.visible = cap.visible = false;
-      // Keep the remaining sand on the downward side of the tilted vessel.
-      // Compressing in bottle-local Y left an unsupported diagonal block.
-      let surface = Infinity;
-      if (!assembly) {
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i];
-          gravityHeights[i] = -(p.x * gravity.x + p.y * gravity.y + p.z * gravity.z);
-        }
-        gravityHeights.sort();
-        const count = Math.floor(mass * particles.length);
-        surface = count === 0 ? -Infinity : gravityHeights[Math.min(count - 1, particles.length - 1)];
+      // Settle the bed before release, then keep each grain's identity throughout
+      // its journey. Higher grains avalanche first; lower grains support the bed.
+      if (!assembly && (progress === 0 || !routesAssigned)) {
+        const order = particles.map((_, i) => i).sort((a, b) => {
+          const p = particles[a], q = particles[b];
+          return (p.x - q.x) * gravity.x + (p.y - q.y) * gravity.y + (p.z - q.z) * gravity.z;
+        });
+        order.forEach((particleIndex, rank) => { exitRoutes[particleIndex] = routeOrder[rank]; });
+        routesAssigned = true;
       }
+      const downRadius = Math.hypot(gravity.x, gravity.z);
+      const wallX = downRadius > 0.001 ? gravity.x / downRadius : 1;
+      const wallZ = downRadius > 0.001 ? gravity.z / downRadius : 0;
       for (let index = 0; index < particles.length; index++) {
         const particle = particles[index];
-        const route = plan.grains[particle.routeIndex];
+        const route = plan.grains[assembly ? particle.routeIndex : exitRoutes[index]];
         let x = particle.x;
         let y = particle.y;
         let z = particle.z;
         if (plan.kind === 'pour') {
-          const elevation = -(x * gravity.x + y * gravity.y + z * gravity.z);
-          if (elevation > surface + 0.000001) { positions[index * 3 + 1] = 10000; continue; }
-          // A thin, mobile surface layer settles downward; the bed stays packed
-          // against the lower glass instead of shrinking toward the bottle axis.
-          const mobile = unit(1 - (surface - elevation) / 0.16) * tip;
-          const slip = (0.5 + 0.5 * Math.sin(progress * 38 + particle.noise * 97)) * 0.025 * mobile;
-          x += gravity.x * slip;
-          y += gravity.y * slip;
-          z += gravity.z * slip;
+          if (progress >= route.mouth) { positions[index * 3 + 1] = 10000; continue; }
+          // Longer paths start earlier. Travel along the lower wall and shoulder,
+          // narrowing through the neck; retire only after reaching the outlet.
+          const travel = 0.12 + (2.22 - particle.y) * 0.045;
+          const start = Math.max(0, route.mouth - travel);
+          const t = unit((progress - start) / Math.max(0.001, route.mouth - start));
+          const along = t * t * (2 - t);
+          y = THREE.MathUtils.lerp(particle.y, 2.22, along);
+          const wall = radiusAt(Math.min(packed.top, y)) * (0.9 + particle.noise * 0.065);
+          const spread = (particle.noise - 0.5) * 0.26;
+          const neck = 1 - eased((t - 0.82) / 0.18);
+          const targetX = (wallX * Math.cos(spread) - wallZ * Math.sin(spread)) * wall * neck;
+          const targetZ = (wallZ * Math.cos(spread) + wallX * Math.sin(spread)) * wall * neck;
+          const settle = eased(t / 0.32) * tip;
+          x = THREE.MathUtils.lerp(particle.x, targetX, settle);
+          z = THREE.MathUtils.lerp(particle.z, targetZ, settle);
         } else {
           if (progress < route.mouth || progress >= route.land) { positions[index * 3 + 1] = 10000; continue; }
           const fall = unit((progress - route.mouth) / (route.land - route.mouth));

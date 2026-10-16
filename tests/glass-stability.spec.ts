@@ -5,6 +5,8 @@ test('bottle glass remains stable after loading and a redraw', async ({ page }) 
   page.on('pageerror', error => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('./', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
+  await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   const bottle = page.locator('canvas.bottle-canvas');
   const initial = await bottle.screenshot();

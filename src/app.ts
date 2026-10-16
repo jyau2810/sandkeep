@@ -196,7 +196,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
       const imageDataUrl = await normalizePhoto(source, signal);
       if (!currentIntent(id)) return;
       const draft = makeDraft(imageDataUrl);
-      if (await showDraft(draft, source instanceof File ? 'loose' : 'sealed', id, signal)) {
+      if (await showDraft(draft, 'loose', id, signal)) {
         if (saveStatus.kind !== 'unavailable') saveStatus = { kind: 'idle' };
         render();
       }
@@ -291,7 +291,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
         const loaded = await store.readLatest();
         if (!currentIntent(id)) return;
         if (loaded.kind === 'found') {
-          await showDraft(loaded.draft, 'sealed', id, signal);
+          await showDraft(loaded.draft, 'loose', id, signal);
           render();
         } else {
           if (loaded.kind === 'unavailable') saveStatus = loaded;
