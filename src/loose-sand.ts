@@ -8,6 +8,7 @@ export type LooseSand = {
   snapshot(): HTMLCanvasElement;
   setTool(tool: LooseTool): void;
   setBrushRadius(radius: number): void;
+  setSprinkleDensity(value: number): void;
   restore(): void;
   beginTransfer(kind: SandTransferKind): SandTransferPlan;
   transferProgress(progress: number): void;
@@ -136,6 +137,8 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   }
   let tool: LooseTool = 'push';
   let brushRadius = 28;
+  let sprinkleDensity = 1;
+  let sprinkleRemainder = 0;
   let pointer: Pointer | null = null;
   let center = { x: width * 0.5, y: height * 0.48 };
   let strokes: Stroke[] = [];
@@ -312,6 +315,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   }
 
   function sprinkle(x: number, y: number, amount: number): void {
+    const requested = amount * sprinkleDensity + sprinkleRemainder;
+    amount = Math.floor(requested);
+    sprinkleRemainder = requested - amount;
     edited = true;
     if (grains.length >= 150000) {
       for (const grain of grains) {
@@ -415,6 +421,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       active = next;
       element.hidden = !next;
       syncActivity();
+    },
+    setSprinkleDensity(value): void {
+      if (Number.isFinite(value)) sprinkleDensity = clamp(value, 10, 200) / 100;
     },
     setBrushRadius(radius): void {
       if (Number.isFinite(radius)) brushRadius = clamp(radius, 8, 64);

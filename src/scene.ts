@@ -16,6 +16,7 @@ export interface BottleScene {
   getDraft(): BottleDraft | null;
   setLooseTool(tool: LooseTool): void;
   setBrushRadius(radius: number): void;
+  setSprinkleDensity(value: number): void;
   restoreLoose(): void;
   dispose(): void;
 }
@@ -1110,6 +1111,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     show,
     assemble: (signal?: AbortSignal) => startTransfer('assemble', signal),
     disassemble: (signal?: AbortSignal) => startTransfer('pour', signal),
+    setSprinkleDensity(value: number): void { content?.loose.setSprinkleDensity(value); },
     setLooseTool(tool: LooseTool): void {
       if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.setTool(tool);

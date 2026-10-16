@@ -38,7 +38,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
             <p class="gesture-hint" id="gesture-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20"/></svg><span>拖动旋转 · 双击回正</span></p>
           </div>
           <div class="workbench-feedback"><div class="status-message" role="status" aria-live="polite" data-testid="app-status" hidden></div><div class="issue-message" role="alert" hidden></div></div>
-          <div class="workbench-options"><div class="sand-tools" role="group" aria-label="沙画操作" hidden><button type="button" data-sand-tool="push" aria-pressed="true">拨沙</button><button type="button" data-sand-tool="sprinkle" aria-pressed="false">撒沙</button></div><label class="brush-control" hidden>作用范围<input type="range" min="8" max="64" step="1" value="28" aria-label="作用范围"></label><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
+          <div class="workbench-options"><div class="sand-tools" role="group" aria-label="沙画操作" hidden><button type="button" data-sand-tool="push" aria-pressed="true">拨沙</button><button type="button" data-sand-tool="sprinkle" aria-pressed="false">撒沙</button></div><label class="brush-control" hidden>作用范围<input type="range" min="8" max="64" step="1" value="28" aria-label="作用范围"></label><label class="brush-control density-control" hidden>密度<input type="range" min="10" max="200" step="1" value="100" aria-label="撒沙密度" aria-valuetext="100%"></label><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
         </section>
       </main>
     </div>`;
@@ -61,6 +61,9 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
   const restore = element<HTMLButtonElement>('[data-action="restore"]');
   const brushControl = element<HTMLLabelElement>('.brush-control');
   const brushInput = element<HTMLInputElement>('.brush-control input');
+  const densityControl = element<HTMLLabelElement>('.density-control');
+  const densityInput = element<HTMLInputElement>('.density-control input');
+  let sprinkleDensity = 100;
   let brushRadius = 28;
   let sandTool: 'push' | 'sprinkle' = 'push';
   const sandTools = element<HTMLDivElement>('.sand-tools');
@@ -114,6 +117,9 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     brushControl.hidden = !looseReady;
     brushInput.disabled = !looseReady;
     scene?.setBrushRadius(brushRadius);
+    densityControl.hidden = !looseReady || sandTool !== 'sprinkle';
+    densityInput.disabled = !looseReady || sandTool !== 'sprinkle';
+    scene?.setSprinkleDensity(sprinkleDensity);
     restore.hidden = !looseReady;
     restore.disabled = !looseReady;
     if (current) {
@@ -242,6 +248,11 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     sandTool = button.dataset.sandTool === 'sprinkle' ? 'sprinkle' : 'push';
     render();
   }, { signal: lifetime.signal }));
+  densityInput.addEventListener('input', () => {
+    sprinkleDensity = Number(densityInput.value);
+    densityInput.setAttribute('aria-valuetext', `${sprinkleDensity}%`);
+    scene?.setSprinkleDensity(sprinkleDensity);
+  }, { signal: lifetime.signal });
   brushInput.addEventListener('input', () => {
     brushRadius = Number(brushInput.value);
     scene?.setBrushRadius(brushRadius);
