@@ -39,6 +39,26 @@ const height = 432;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const rgba = (r: number, g: number, b: number) => (255 << 28) | (b << 16) | (g << 8) | r;
 
+// The restore brush shares the same local force falloff as direct manipulation.
+function pushGrain(grain: Grain, stroke: Stroke, radius: number): void {
+  const dx = stroke.bx - stroke.ax;
+  const dy = stroke.by - stroke.ay;
+  const length = dx * dx + dy * dy;
+  const t = length > 0 ? clamp(((grain.x - stroke.ax) * dx + (grain.y - stroke.ay) * dy) / length, 0, 1) : 0;
+  const ox = grain.x - (stroke.ax + dx * t);
+  const oy = grain.y - (stroke.ay + dy * t);
+  const distance2 = ox * ox + oy * oy;
+  if (distance2 < radius * radius) {
+    const distance = Math.sqrt(distance2) + 0.01;
+    const falloff = 1 - distance / radius;
+    const speed = Math.min(1, Math.sqrt(length) / 14);
+    const push = (1.7 + speed * 2.8) * falloff;
+    grain.omega = 0;
+    grain.vx += ox / distance * push + clamp(dx, -25, 25) * 0.18 * falloff;
+    grain.vy += oy / distance * push + clamp(dy, -25, 25) * 0.18 * falloff;
+  }
+}
+
 export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolean, savedState?: Uint8Array): LooseSand {
   const element = document.createElement('div');
   element.className = 'loose-sand-layer';
@@ -213,22 +233,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     } else {
       for (const grain of grains) {
         for (const stroke of activeStrokes) {
-          const dx = stroke.bx - stroke.ax;
-          const dy = stroke.by - stroke.ay;
-          const length = dx * dx + dy * dy;
-          const t = length > 0 ? clamp(((grain.x - stroke.ax) * dx + (grain.y - stroke.ay) * dy) / length, 0, 1) : 0;
-          const ox = grain.x - (stroke.ax + dx * t);
-          const oy = grain.y - (stroke.ay + dy * t);
-          const distance2 = ox * ox + oy * oy;
-          if (distance2 < brushRadius * brushRadius) {
-            const distance = Math.sqrt(distance2) + 0.01;
-            const falloff = 1 - distance / brushRadius;
-            const speed = Math.min(1, Math.sqrt(length) / 14);
-            const push = (1.7 + speed * 2.8) * falloff;
-            grain.omega = 0;
-            grain.vx += ox / distance * push + clamp(dx, -25, 25) * 0.18 * falloff;
-            grain.vy += oy / distance * push + clamp(dy, -25, 25) * 0.18 * falloff;
-          }
+          pushGrain(grain, stroke, brushRadius);
         }
         if (spinning) {
           const ox = grain.x - center.x;
@@ -267,15 +272,26 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     }
     if (sweptGrains.length) {
       const elapsed = now - sweepTime;
+      const reach = 84;
       for (const grain of sweptGrains) {
-        const delay = grain.sx / width * 160 + grain.delay * 0.3;
-        const t = clamp((elapsed - delay) / 660, 0, 1);
-        const slide = t * t * (3 - 2 * t);
-        grain.x = grain.sx + (width + 18 - grain.sx) * slide;
-        grain.y = grain.sy + Math.sin(t * Math.PI) * (12 + grain.delay * 0.1);
+        // Slightly different brush contacts break the pile into loose grains;
+        // a shared straight front would compress it into a rigid dark ridge.
+        const seed = Math.sin(grain.sx * 12.9898 + grain.sy * 78.233) * 43758.5453;
+        const roughness = seed - Math.floor(seed);
+        const front = Math.min(grain.sx - reach + elapsed * (0.5 + roughness * 0.3), grain.x - 22 - roughness * 36);
+        const cy = grain.y + (roughness - 0.5) * 40;
+        pushGrain(grain, { ax: front - 14, ay: cy, bx: front, by: cy }, reach);
+        const damping = Math.pow(0.83, dt);
+        grain.vx = clamp(grain.vx, -12, 12) * damping;
+        grain.vy = clamp(grain.vy, -12, 12) * damping;
+        grain.x += grain.vx * dt;
+        grain.y += grain.vy * dt;
+        if (grain.y < 1) { grain.y = 1; grain.vy *= -0.2; }
+        if (grain.y > height - 3) { grain.y = height - 3; grain.vy *= -0.2; }
       }
-      if (elapsed > 920) sweptGrains = [];
-      else moving = true;
+      // Retire sand only after it has physically crossed the open right edge.
+      sweptGrains = sweptGrains.filter(grain => grain.x < width + 2);
+      if (sweptGrains.length) moving = true;
     }
     paint();
     if (moving || spinning || strokes.length || (pointer && tool === 'sprinkle')) wake();
@@ -361,6 +377,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       animation = 0;
       if (pausedAt === null) pausedAt = performance.now();
     } else {
+      if (pausedAt !== null && sweptGrains.length) sweepTime += performance.now() - pausedAt;
       if (pausedAt !== null && restoreTime >= 0) restoreTime += performance.now() - pausedAt;
       pausedAt = null;
       if (moving || restoreTime >= 0) wake();
@@ -426,7 +443,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
           if (excess > 0) extra.push({ ...grain, density: excess });
         });
         sweptGrains = sweptGrains.concat(extra);
-        sweptGrains.forEach(grain => { grain.sx = grain.x; grain.sy = grain.y; });
+        sweptGrains.forEach(grain => { grain.sx = grain.x; grain.sy = grain.y; grain.vx = grain.vy = 0; });
         sweepTime = performance.now();
       } else sweptGrains = [];
       grains.length = originalGrains.length;

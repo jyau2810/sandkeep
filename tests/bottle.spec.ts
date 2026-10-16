@@ -861,6 +861,6 @@ test('restore sweeps sprinkled sand sideways before recovering the original canv
     let sum=0, mass=0;for(let i=0;i<data.length;i+=4){const d=Math.max(0,before[i+1]-data[i+1]);sum+=((i/4)%720)*d;mass+=d;}return sum/mass;
   }, beforePixels);
   const early = await center(); await page.clock.runFor(300);
-  expect(await center()).toBeGreaterThan(early + 80);
-  await page.clock.runFor(700); expect(await flatPicture(page)).toBe(original);
+  expect(await center()).toBeGreaterThan(early + 30);
+  await page.clock.runFor(2800); expect(await flatPicture(page)).toBe(original);
 });
