@@ -122,6 +122,8 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   let animation = 0;
   let lastTime = 0;
   let restoreTime = -1;
+  let sweptGrains: typeof grains = [];
+  let sweepTime = -1;
   let spinUntil = 0;
   let active = false;
   let disposed = false;
@@ -132,8 +134,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   function paint(): void {
     density.fill(0);
     const assembly = transfer?.plan.kind === 'assemble' ? sampleAssembly(transfer.plan, transfer.progress) : null;
-    for (let i = 0; i < grains.length; i++) {
-      const grain = grains[i];
+    const visibleGrains = sweptGrains.length ? grains.concat(sweptGrains) : grains;
+    for (let i = 0; i < visibleGrains.length; i++) {
+      const grain = visibleGrains[i];
       let px = grain.x;
       let py = grain.y;
       if (transfer) {
@@ -262,6 +265,18 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
         } else grain.vx = grain.vy = 0;
       }
     }
+    if (sweptGrains.length) {
+      const elapsed = now - sweepTime;
+      for (const grain of sweptGrains) {
+        const delay = grain.sx / width * 160 + grain.delay * 0.3;
+        const t = clamp((elapsed - delay) / 660, 0, 1);
+        const slide = t * t * (3 - 2 * t);
+        grain.x = grain.sx + (width + 18 - grain.sx) * slide;
+        grain.y = grain.sy + Math.sin(t * Math.PI) * (12 + grain.delay * 0.1);
+      }
+      if (elapsed > 920) sweptGrains = [];
+      else moving = true;
+    }
     paint();
     if (moving || spinning || strokes.length || (pointer && tool === 'sprinkle')) wake();
   }
@@ -363,6 +378,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   return {
     element,
     exportState(): Uint8Array | undefined {
+      sweptGrains = [];
       if (!edited) return undefined;
       const bytes = new Uint8Array(grains.length * 28);
       const view = new DataView(bytes.buffer);
@@ -403,6 +419,16 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       releasePointer();
       spinUntil = 0;
       strokes = [];
+      if (!reducedMotion) {
+        const extra = grains.slice(originalGrains.length).map(grain => ({ ...grain }));
+        grains.slice(0, originalGrains.length).forEach((grain, i) => {
+          const excess = grain.density - originalGrains[i].density;
+          if (excess > 0) extra.push({ ...grain, density: excess });
+        });
+        sweptGrains = sweptGrains.concat(extra);
+        sweptGrains.forEach(grain => { grain.sx = grain.x; grain.sy = grain.y; });
+        sweepTime = performance.now();
+      } else sweptGrains = [];
       grains.length = originalGrains.length;
       grains.forEach((grain, i) => { grain.density = originalGrains[i].density; grain.color = originalGrains[i].color; });
       if (reducedMotion) edited = false;
@@ -418,6 +444,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       else wake();
     },
     beginTransfer(kind): SandTransferPlan {
+      sweptGrains = [];
       active = false;
       syncActivity();
       const plan = createTransferPlan(kind, grains.map(grain => ({ ...grain, hx: grain.x, hy: grain.y })));
@@ -457,6 +484,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       element.remove();
       canvas.width = canvas.height = 0;
       grains.length = 0;
+      sweptGrains = [];
     },
   };
 }

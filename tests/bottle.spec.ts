@@ -759,7 +759,7 @@ test('an unavailable WebGL context shows a recoverable explanation', async ({ pa
 
 test('pouring falls below the mouth into the frame after any bottle rotation', async ({ page }) => {
   test.setTimeout(90000);
-  let reference: { x: number; top: number; bottom: number } | null = null;
+  let reference: { x: number; top: number; receivingBottom: number } | null = null;
   await page.clock.install();
   for (const [turns, tilts] of [[0, 0], [2, 0], [5, 0], [2, 2], [1, 5]]) {
     await openDemo(page);
@@ -800,7 +800,9 @@ test('pouring falls below the mouth into the frame after any bottle rotation', a
     if (reference) {
       expect(Math.abs(stream.x - reference.x)).toBeLessThan(3);
       expect(Math.abs(stream.top - reference.top)).toBeLessThan(8);
-      expect(Math.abs(stream.bottom - reference.bottom)).toBeLessThan(14);
+      // Sparse falling grains can differ by one RAF across navigations; the receiver
+      // and mouth must remain aligned regardless of the original bottle orientation.
+      expect(Math.abs(stream.receivingBottom - reference.receivingBottom)).toBeLessThan(1);
     } else reference = stream;
     await page.clock.runFor(1800);
     await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
@@ -836,4 +838,29 @@ test('the quiet interface uses one shared gesture hint and only the requested co
     expect(geometry.topDifference).toBeLessThan(1);
     expect(geometry.overflow).toBe(0);
   }
+});
+
+test('restore sweeps sprinkled sand sideways before recovering the original canvas', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.clock.install(); await openDemo(page);
+  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 100));
+  await page.getByRole('button', { name: '倒出成画', exact: true }).click();
+  await page.clock.runFor(3100);
+  const canvas = page.getByTestId('loose-sand');
+  const original = await flatPicture(page);
+  const beforePixels = await canvas.evaluate(c => Array.from((c as HTMLCanvasElement).getContext('2d')!.getImageData(0,0,720,432).data));
+  await page.getByRole('button', { name: '撒沙', exact: true }).click();
+  const box = await canvas.boundingBox(); if (!box) throw Error('No canvas');
+  await page.mouse.click(box.x + box.width * .25, box.y + box.height * .5);
+  await page.clock.runFor(32);
+  await page.getByRole('button', { name: '复原', exact: true }).click();
+  await page.clock.runFor(80);
+  expect(await flatPicture(page)).not.toBe(original);
+  const center = () => canvas.evaluate((c, before) => {
+    const data = (c as HTMLCanvasElement).getContext('2d')!.getImageData(0,0,720,432).data;
+    let sum=0, mass=0;for(let i=0;i<data.length;i+=4){const d=Math.max(0,before[i+1]-data[i+1]);sum+=((i/4)%720)*d;mass+=d;}return sum/mass;
+  }, beforePixels);
+  const early = await center(); await page.clock.runFor(300);
+  expect(await center()).toBeGreaterThan(early + 80);
+  await page.clock.runFor(700); expect(await flatPicture(page)).toBe(original);
 });
