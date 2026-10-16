@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bottleMass, eased, sampleAssembly, sandNoise, unit, type SandTransferPlan } from './sand-motion';
+import { bottleMass, sampleAssembly, sandNoise, unit, type SandTransferPlan } from './sand-motion';
 
 type Reservoir = {
   object: THREE.Group;
@@ -174,6 +174,7 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
   let held: SandTransferPlan | null = null;
   let particles: Particle[] = [];
   let positions = new Float32Array(0);
+  let gravityHeights = new Float32Array(0);
 
   function prepare(plan: SandTransferPlan): void {
     held = plan;
@@ -183,7 +184,7 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
     for (let index = 0; index < plan.grains.length; index += 3) {
       const noise = sandNoise(index + 843);
       const layer = plan.kind === 'assemble' ? plan.grains[index].layer : sandNoise(index + 199);
-      const y = plan.kind === 'assemble' ? heightForMass(layer) : -1.535 + layer * 3.635;
+      const y = heightForMass(layer);
       const around = sandNoise(index + 53);
       const angle = around * Math.PI * 2;
       const radial = noise < 0.66 ? 0.993 - sandNoise(index + 19) * 0.026 : Math.sqrt(sandNoise(index + 29)) * 0.96;
@@ -209,6 +210,7 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
       colors.push(color.r, color.g, color.b);
       sizes.push(0.83 + sandNoise(index + 71) * 0.5);
     }
+    gravityHeights = new Float32Array(particles.length);
     if (positions.length !== particles.length * 3) {
       positions = new Float32Array(particles.length * 3);
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3).setUsage(THREE.DynamicDrawUsage));
@@ -234,8 +236,18 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
       material.uniforms.pointLimits.value.set(assembly ? 0.45 : 1.35, assembly ? 1.2 : 4.8);
       if (assembly) drawPacked(mass, progress);
       else fill.visible = cap.visible = false;
-      const lost = 1 - mass;
-      const compression = Math.pow(Math.max(0.0001, mass), 0.30);
+      // Keep the remaining sand on the downward side of the tilted vessel.
+      // Compressing in bottle-local Y left an unsupported diagonal block.
+      let surface = Infinity;
+      if (!assembly) {
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          gravityHeights[i] = -(p.x * gravity.x + p.y * gravity.y + p.z * gravity.z);
+        }
+        gravityHeights.sort();
+        const count = Math.floor(mass * particles.length);
+        surface = count === 0 ? -Infinity : gravityHeights[Math.min(count - 1, particles.length - 1)];
+      }
       for (let index = 0; index < particles.length; index++) {
         const particle = particles[index];
         const route = plan.grains[particle.routeIndex];
@@ -243,16 +255,15 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
         let y = particle.y;
         let z = particle.z;
         if (plan.kind === 'pour') {
-          if (progress >= route.mouth) { positions[index * 3 + 1] = 10000; continue; }
-          const slump = tip * 0.13 + lost * 0.55;
-          x = x * compression + gravity.x * slump;
-          y = -1.535 + (y + 1.535) * compression + lost * 1.86 + Math.max(0, gravity.y) * tip * 0.12;
-          z = z * compression + gravity.z * slump;
-          const slide = eased((progress - route.depart) / (route.mouth - route.depart));
-          const jitter = Math.sin(progress * 33 + particle.noise * 97) * 0.014 * tip;
-          x = x * (1 - slide) + jitter;
-          z = z * (1 - slide) + jitter * 0.6;
-          y += (2.22 - y) * slide;
+          const elevation = -(x * gravity.x + y * gravity.y + z * gravity.z);
+          if (elevation > surface + 0.000001) { positions[index * 3 + 1] = 10000; continue; }
+          // A thin, mobile surface layer settles downward; the bed stays packed
+          // against the lower glass instead of shrinking toward the bottle axis.
+          const mobile = unit(1 - (surface - elevation) / 0.16) * tip;
+          const slip = (0.5 + 0.5 * Math.sin(progress * 38 + particle.noise * 97)) * 0.025 * mobile;
+          x += gravity.x * slip;
+          y += gravity.y * slip;
+          z += gravity.z * slip;
         } else {
           if (progress < route.mouth || progress >= route.land) { positions[index * 3 + 1] = 10000; continue; }
           const fall = unit((progress - route.mouth) / (route.land - route.mouth));

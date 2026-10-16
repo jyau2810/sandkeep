@@ -281,7 +281,7 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
   normalMap.anisotropy = 4;
   const material = new THREE.MeshStandardMaterial({
     map, normalMap, normalScale: new THREE.Vector2(0.9, 0.9),
-    roughness: 0.94, metalness: 0, color: 0xcecece, envMapIntensity: 0.14,
+    roughness: 0.94, metalness: 0, color: 0xdedede, envMapIntensity: 0.14,
   });
   material.addEventListener('dispose', () => normalMap.dispose());
   return material;
