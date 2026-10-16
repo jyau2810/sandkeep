@@ -37,7 +37,7 @@ try {
   if (!firstBottle) throw new Error('The bottle stage is missing.');
   await page.mouse.move(firstBottle.x + firstBottle.width * 0.4, firstBottle.y + firstBottle.height * 0.5);
   await page.mouse.down();
-  await page.mouse.move(firstBottle.x + firstBottle.width * 0.72, firstBottle.y + firstBottle.height * 0.5, { steps: 30 });
+  await page.mouse.move(firstBottle.x + firstBottle.width * 0.63, firstBottle.y + firstBottle.height * 0.35, { steps: 30 });
   await page.mouse.up();
   await page.waitForTimeout(800);
   marks.pour = (performance.now() - recordingStarted) / 1000 - trimStartSeconds;
@@ -63,9 +63,11 @@ try {
   if (!bottleBox) throw new Error('The bottle stage is missing.');
   await page.mouse.move(bottleBox.x + bottleBox.width * 0.36, bottleBox.y + bottleBox.height * 0.55);
   await page.mouse.down();
-  await page.mouse.move(bottleBox.x + bottleBox.width * 0.73, bottleBox.y + bottleBox.height * 0.55, { steps: 60 });
+  await page.mouse.move(bottleBox.x + bottleBox.width * 0.65, bottleBox.y + bottleBox.height * 0.4, { steps: 60 });
   await page.mouse.up();
-  await page.waitForTimeout(2700);
+  await page.waitForTimeout(1800);
+  await page.locator('canvas.bottle-canvas').dblclick();
+  await page.waitForTimeout(900);
   const videoPath = await page.video().path();
   await desktop.close();
   await copyFile(videoPath, path.join(scratch, 'demo.webm'));

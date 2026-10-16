@@ -11,7 +11,8 @@ export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
   assemble(signal?: AbortSignal): Promise<SceneResult>;
   disassemble(signal?: AbortSignal): Promise<SceneResult>;
-  turnBy(radians: number): void;
+  turnBy(radians: number, vertical?: number): void;
+  resetView(): void;
   setLooseTool(tool: LooseTool): void;
   restoreLoose(): void;
   dispose(): void;
@@ -31,6 +32,9 @@ type Content = {
 type Transfer = {
   kind: SandTransferKind;
   sourceYaw: number;
+  sourceOrientation: THREE.Quaternion;
+  sourcePosition: THREE.Vector3;
+  sourceMouth: THREE.Vector3;
   plan: SandTransferPlan;
   started: number;
   promise: Promise<SceneResult>;
@@ -39,7 +43,7 @@ type Transfer = {
   signal?: AbortSignal;
   abort: () => void;
 };
-type Gesture = { id: number; x: number; y: number; lastX: number; horizontal: boolean };
+type Gesture = { id: number; lastX: number; lastY: number };
 
 const radius = 0.966;
 const bottom = -1.49;
@@ -360,7 +364,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   const canvas = renderer.domElement;
   canvas.className = 'bottle-canvas';
   canvas.setAttribute('aria-hidden', 'true');
-  canvas.style.cssText = 'width:100%;height:100%;display:block;touch-action:pan-y';
+  canvas.style.cssText = 'width:100%;height:100%;display:block;touch-action:none';
   renderer.setClearColor(0xece6da, 1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -481,6 +485,11 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   let frame = 0;
   let previousTime = 0;
   let yawVelocity = 0;
+  let pitchVelocity = 0;
+  const horizontalAxis = new THREE.Vector3(0, 1, 0);
+  const verticalAxis = new THREE.Vector3(1, 0, 0);
+  const rotationStep = new THREE.Quaternion();
+  const bottleUp = new THREE.Vector3();
   let gesture: Gesture | null = null;
   let width = 1;
   let height = 1;
@@ -535,11 +544,13 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     content.reservoir.reset();
     content.mantle.visible = content.cap.visible = next === 'sealed';
     if (next === 'sealed') {
-      content.fillPlane.normal.set(0, -1, 0);
-      content.fillPlane.constant = fillTop;
       content.cap.position.y = fillTop;
       content.cap.scale.setScalar(sandRadiusAt(fillTop));
-    } else bottle.rotation.y = 0;
+      updateSandClip();
+    } else {
+      bottle.rotation.set(0, 0, 0);
+      bottle.position.y = 0;
+    }
     resize();
   }
 
@@ -581,7 +592,11 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const destination: Presentation = current.kind === 'assemble' ? 'sealed' : 'loose';
     const source: Presentation = current.kind === 'assemble' ? 'loose' : 'sealed';
     applyPresentation(result === 'completed' ? destination : source);
-    bottle.rotation.set(0, current.sourceYaw, 0);
+    if (result === 'cancelled' && source === 'sealed') {
+      bottle.quaternion.copy(current.sourceOrientation);
+      bottle.position.copy(current.sourcePosition);
+    } else bottle.rotation.set(0, current.sourceYaw, 0);
+    updateSandClip();
     current.resolve(result);
   }
 
@@ -672,7 +687,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     };
   }
 
-  function posePour(frame: HTMLElement, progress: number, flow: number, yaw: number): FrameProjection {
+  function posePour(frame: HTMLElement, progress: number, flow: number, current: Transfer): FrameProjection {
     const frameStyle = getComputedStyle(frame);
     const sandStyle = getComputedStyle(frame.querySelector('canvas')!);
     const frameWidth = parseFloat(frameStyle.width);
@@ -700,13 +715,14 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
 
     const prepare = smooth(progress / 0.29);
     const tip = smooth((progress - 0.04) / 0.25);
-    bottle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI * tip)
-      .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw));
+    const upright = new THREE.Quaternion().setFromAxisAngle(horizontalAxis, current.sourceYaw);
+    const leveled = current.sourceOrientation.clone().slerp(upright, smooth(progress / 0.18));
+    bottle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI * tip).multiply(leveled);
     const uncork = smooth(progress / 0.16);
     corkMesh.position.y = 2.38 + uncork * 0.9;
     corkBevel.position.y = 2.595 + uncork * 0.9;
     corkMesh.visible = corkBevel.visible = progress < 0.18;
-    const restingMouth = screenPoint(new THREE.Vector3(0, 2.22, 0));
+    const restingMouth = screenPoint(current.sourceMouth);
     const target = {
       x: THREE.MathUtils.lerp(restingMouth.x, width / 2, prepare),
       y: THREE.MathUtils.lerp(restingMouth.y, height - 60 - finalHeight - 38, prepare),
@@ -757,10 +773,9 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       plinth.scale.setScalar(Math.max(0.001, 1 - smooth((progress - 0.02) / 0.14)));
       shadow.material.opacity = 1 - smooth(progress / 0.16);
       flow = clamp((progress - 0.27) / 0.59);
-      sandPlane = posePour(frame, progress, flow, current.sourceYaw);
+      sandPlane = posePour(frame, progress, flow, current);
     } else {
-      bottle.rotation.y = current.sourceYaw;
-      bottle.rotation.z = 0;
+      bottle.rotation.set(0, current.sourceYaw, 0);
       flow = progress;
       sandPlane = poseAssembly(frame, progress);
       const close = smooth((progress - 0.91) / 0.08);
@@ -774,6 +789,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     }
     content.loose.transferProgress(flow);
     bottle.updateMatrixWorld(true);
+    updateSandClip();
     const movingSand = current.kind === 'pour' ? progress > 0.11 : flow < current.plan.settledAt;
     content.mantle.visible = content.cap.visible = !movingSand;
     if (movingSand) content.reservoir.draw(current.plan, flow, current.kind === 'pour' ? smooth((progress - 0.04) / 0.25) : 0, height * renderer.getPixelRatio());
@@ -789,10 +805,11 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const dt = previousTime ? Math.min(0.05, (now - previousTime) / 1000) : 1 / 60;
     previousTime = now;
     if (transfer) animateTransfer(now);
-    if (!transfer && !gesture && Math.abs(yawVelocity) > 0.00005) {
-      bottle.rotation.y += yawVelocity * dt * 60;
+    if (!transfer && !gesture && Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) {
+      rotateBottle(yawVelocity * dt * 60, pitchVelocity * dt * 60);
       yawVelocity *= Math.pow(0.9, dt * 60);
-    } else if (!gesture) yawVelocity = 0;
+      pitchVelocity *= Math.pow(0.9, dt * 60);
+    } else if (!gesture) yawVelocity = pitchVelocity = 0;
     try { renderer.render(world, camera); }
     catch {
       contextLost = true;
@@ -801,7 +818,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       options.onFault({ code: 'render-failed', message: '瓶子显示中断了，刷新页面后再试试。' });
       return;
     }
-    if (transfer || Math.abs(yawVelocity) > 0.00005) requestFrame();
+    if (transfer || Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) requestFrame();
   }
 
   function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
@@ -889,9 +906,12 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     content = prepared;
     bottle.add(prepared.group);
     host.append(prepared.loose.element);
-    if (!previous || previous.draft.imageDataUrl !== draft.imageDataUrl) bottle.rotation.y = 0;
+    if (!previous || previous.draft.imageDataUrl !== draft.imageDataUrl) {
+      bottle.rotation.set(0, 0, 0);
+      bottle.position.set(0, 0, 0);
+    }
     if (previous) releaseContent(previous);
-    yawVelocity = 0;
+    yawVelocity = pitchVelocity = 0;
     applyPresentation(next);
     resize();
     return 'completed';
@@ -905,11 +925,13 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const destination: Presentation = kind === 'assemble' ? 'sealed' : 'loose';
     if (mode === destination) return Promise.resolve('completed');
     if (options.reducedMotion || document.hidden) {
-      const sourceYaw = bottle.rotation.y;
+      const sourceYaw = 2 * Math.atan2(bottle.quaternion.y, bottle.quaternion.w);
       content.loose.beginTransfer(kind);
       content.loose.finishTransfer(true);
       applyPresentation(destination);
       bottle.rotation.set(0, sourceYaw, 0);
+      bottle.position.set(0, 0, 0);
+      yawVelocity = pitchVelocity = 0;
       return Promise.resolve('completed');
     }
     let resolve!: (result: SceneResult) => void;
@@ -917,8 +939,14 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const abort = () => finishTransfer('cancelled');
     const timeout = setTimeout(() => finishTransfer('completed'), transferDuration[kind] + 80);
     const plan = content.loose.beginTransfer(kind);
-    transfer = { kind, sourceYaw: bottle.rotation.y, plan, started: performance.now(), promise, resolve, timeout, signal, abort };
-    yawVelocity = 0;
+    bottle.updateMatrixWorld(true);
+    transfer = {
+      kind, sourceYaw: 2 * Math.atan2(bottle.quaternion.y, bottle.quaternion.w),
+      sourceOrientation: bottle.quaternion.clone(), sourcePosition: bottle.position.clone(),
+      sourceMouth: bottle.localToWorld(new THREE.Vector3(0, 2.22, 0)),
+      plan, started: performance.now(), promise, resolve, timeout, signal, abort,
+    };
+    yawVelocity = pitchVelocity = 0;
     if (gesture && canvas.hasPointerCapture(gesture.id)) canvas.releasePointerCapture(gesture.id);
     gesture = null;
     canvas.style.cursor = 'default';
@@ -936,28 +964,23 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (transfer || !content || mode !== 'sealed') return;
-    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, lastX: event.clientX, horizontal: event.pointerType === 'mouse' };
-    yawVelocity = 0;
-    if (event.pointerType === 'mouse') canvas.setPointerCapture(event.pointerId);
+    if (transfer || !content || mode !== 'sealed' || gesture || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    gesture = { id: event.pointerId, lastX: event.clientX, lastY: event.clientY };
+    yawVelocity = pitchVelocity = 0;
+    canvas.setPointerCapture(event.pointerId);
     canvas.style.cursor = mode === 'sealed' ? 'grabbing' : 'crosshair';
   }
 
   function onPointerMove(event: PointerEvent): void {
     if (!content || transfer) return;
     if (!gesture || event.pointerId !== gesture.id || mode !== 'sealed') return;
-    const dx = event.clientX - gesture.x;
-    const dy = event.clientY - gesture.y;
-    if (!gesture.horizontal) {
-      if (Math.abs(dy) > Math.abs(dx) + 6) { gesture = null; return; }
-      if (Math.abs(dx) < 7) return;
-      gesture.horizontal = true;
-      canvas.setPointerCapture(event.pointerId);
-    }
     const delta = (event.clientX - gesture.lastX) / Math.max(250, width) * Math.PI * 2;
-    bottle.rotation.y += delta;
+    const vertical = (event.clientY - gesture.lastY) / Math.max(250, height) * Math.PI * 2;
+    rotateBottle(delta, vertical);
     yawVelocity = options.reducedMotion ? 0 : delta * 0.65;
+    pitchVelocity = options.reducedMotion ? 0 : vertical * 0.65;
     gesture.lastX = event.clientX;
+    gesture.lastY = event.clientY;
     requestFrame();
   }
 
@@ -966,6 +989,35 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     gesture = null;
     canvas.style.cursor = mode === 'sealed' ? 'grab' : 'crosshair';
+    requestFrame();
+  }
+
+  function rotateBottle(horizontal: number, vertical: number): void {
+    if (vertical === 0 && bottle.rotation.x === 0 && bottle.rotation.z === 0) bottle.rotation.y += horizontal;
+    else {
+      bottle.quaternion.premultiply(rotationStep.setFromAxisAngle(horizontalAxis, horizontal));
+      bottle.quaternion.premultiply(rotationStep.setFromAxisAngle(verticalAxis, vertical)).normalize();
+    }
+    bottleUp.set(0, 1, 0).applyQuaternion(bottle.quaternion);
+    const low = Math.min(-1.69 * bottleUp.y, 2.613 * bottleUp.y) - 1.038 * Math.sqrt(Math.max(0, 1 - bottleUp.y * bottleUp.y));
+    bottle.position.y = Math.abs(bottleUp.y - 1) < 1e-12 ? 0 : Math.max(0, -1.69 - low);
+    updateSandClip();
+  }
+
+  function updateSandClip(): void {
+    if (!content) return;
+    bottle.updateMatrixWorld(true);
+    content.fillPlane.normal.set(0, -1, 0);
+    content.fillPlane.constant = fillTop;
+    content.fillPlane.applyMatrix4(bottle.matrixWorld);
+  }
+
+  function resetView(): void {
+    if (disposed || contextLost || transfer || mode !== 'sealed') return;
+    yawVelocity = pitchVelocity = 0;
+    bottle.rotation.set(0, 0, 0);
+    bottle.position.set(0, 0, 0);
+    updateSandClip();
     requestFrame();
   }
 
@@ -997,6 +1049,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('lostpointercapture', onPointerUp);
+  canvas.addEventListener('dblclick', resetView);
   canvas.addEventListener('webglcontextlost', onContextLost);
   document.addEventListener('visibilitychange', onVisibility);
   vessel.visible = plinth.visible = shadow.visible = false;
@@ -1014,12 +1068,13 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.restore();
     },
-    turnBy(radians: number): void {
-      if (disposed || contextLost || transfer || mode !== 'sealed' || !Number.isFinite(radians)) return;
-      bottle.rotation.y += radians;
-      yawVelocity = 0;
+    turnBy(radians: number, vertical = 0): void {
+      if (disposed || contextLost || transfer || mode !== 'sealed' || !Number.isFinite(radians) || !Number.isFinite(vertical)) return;
+      rotateBottle(radians, vertical);
+      yawVelocity = pitchVelocity = 0;
       requestFrame();
     },
+    resetView,
     dispose(): void {
       if (disposed) return;
       disposed = true;
@@ -1033,6 +1088,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('lostpointercapture', onPointerUp);
+      canvas.removeEventListener('dblclick', resetView);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       document.removeEventListener('visibilitychange', onVisibility);
       if (content) releaseContent(content);

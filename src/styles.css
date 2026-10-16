@@ -45,7 +45,7 @@ svg{display:block;fill:none;stroke:currentColor;stroke-linecap:round;stroke-line
 .scene-fallback p:first-child{font-size:20px;color:var(--ink)}
 .loose-sand-layer{position:absolute;inset:0;z-index:1;display:grid;place-items:center;padding:52px 26px 60px;cursor:default}
 .loose-sand-frame{width:min(100%,600px,calc((var(--scene-height) - 112px - var(--frame-inset)) * 5 / 3 + var(--frame-inset)));padding:9px;border:6px solid #8b6d4b;background:#f3ead8;box-shadow:0 9px 18px #58432926}
-.scene-host .loose-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair;image-rendering:pixelated}
+.scene-host .loose-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair}
 .gesture-hint{position:absolute;left:50%;bottom:18px;z-index:4;display:flex;align-items:center;gap:9px;transform:translateX(-50%);margin:0;color:var(--muted);font-size:13px;line-height:20px;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
 .gesture-hint svg{width:18px;height:18px;flex-shrink:0;stroke-width:1.25}
 .sand-transfer-canvas{position:absolute;inset:0;z-index:3;pointer-events:none}

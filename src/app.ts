@@ -35,9 +35,9 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
             <span class="file-help" id="photo-help">JPG / PNG / WebP · 不超过 15 MB</span>
           </div>
           <div class="bottle-gallery">
-            <div class="scene-host" tabindex="0" role="img" aria-label="暖调沙画瓶" aria-describedby="gesture-hint" aria-keyshortcuts="ArrowLeft ArrowRight" data-testid="bottle-scene"></div>
+            <div class="scene-host" tabindex="0" role="img" aria-label="暖调沙画瓶" aria-describedby="gesture-hint" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home" data-testid="bottle-scene"></div>
             <div class="scene-fallback" hidden><p>这里需要浏览器支持 3D 画面。</p><p>请试试新版 Chrome、Edge 或 Safari，并开启硬件加速。</p><button class="text-button" type="button" data-action="retry">重新尝试</button></div>
-            <p class="gesture-hint" id="gesture-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20"/></svg><span>左右拖动旋转</span></p>
+            <p class="gesture-hint" id="gesture-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20"/></svg><span>拖动旋转 · 双击回正</span></p>
           </div>
           <div class="workbench-feedback"><div class="status-message" role="status" aria-live="polite" data-testid="app-status" hidden></div><div class="issue-message" role="alert" hidden></div></div>
           <div class="workbench-options"><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
@@ -97,14 +97,14 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     host.setAttribute('aria-busy', String(pending));
     host.setAttribute('aria-label', phase.kind === 'pouring' ? '瓶子里的暖砂正在倒进平面画框。'
       : phase.kind === 'assembling' ? '画框里的暖砂正在装进瓶子。'
-      : sealed ? '暖调沙画瓶'
+      : sealed ? '暖调沙画瓶。拖动或使用四个方向键旋转，双击或按 Home 回正。'
       : '带画框的平面暖调沙画。点击复原可以恢复原画。');
     host.dataset.presentation = phase.kind === 'assembling' || phase.kind === 'pouring' ? phase.kind : sealed ? 'sealed' : 'loose';
     primary.disabled = pending || !current || fatal;
     primary.querySelector('span')!.textContent = phase.kind === 'pouring' ? '正在倒出…'
       : phase.kind === 'assembling' ? '正在装瓶…' : phase.kind === 'loading' ? '正在准备…' : sealed ? '倒出成画' : '装进瓶子';
     gestureHint.hidden = !sealedReady && !looseReady;
-    gestureHint.querySelector('span')!.textContent = sealed ? '左右拖动旋转' : '轻轻拨动，玩一会儿沙';
+    gestureHint.querySelector('span')!.textContent = sealed ? '拖动旋转 · 双击回正' : '轻轻拨动，玩一会儿沙';
     restore.hidden = !looseReady;
     restore.disabled = !looseReady;
     if (current) {
@@ -238,13 +238,16 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     fatal = false;
     void loadPhoto(ready()?.draft.imageDataUrl ?? options.demoUrl);
   }, { signal: lifetime.signal });
-  function turn(direction: number): void {
-    if (ready()?.kind === 'sealed' && !busy() && !fatal) scene?.turnBy(direction * Math.PI / 5);
-  }
   host.addEventListener('keydown', event => {
-    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    if (ready()?.kind !== 'sealed' || busy() || fatal) return;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) {
       event.preventDefault();
-      turn(event.key === 'ArrowLeft' ? -1 : 1);
+      if (event.key === 'Home') scene?.resetView();
+      else {
+        const step = Math.PI / 5;
+        scene?.turnBy(event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0,
+          event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0);
+      }
     }
   }, { signal: lifetime.signal });
   render();

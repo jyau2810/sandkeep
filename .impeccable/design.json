@@ -192,7 +192,7 @@
       {
         "name": "pour",
         "value": "2900ms; local picture yaw separated from stage-space tip; dock before departure; hold through final landing; loose intermittent gravity grains",
-        "purpose": "The in-progress revision places the mouth over the receiver after any inspection yaw. Falling grains accelerate downward with small spread. Existing static materials remain protected. This source-only merge does not verify the final pose or rendered flow."
+        "purpose": "Capture the full source orientation, position and mouth. Smoothly level during preparation, then tip and dock before discharge. Cancellation restores the exact source pose. Free inspection must never change the downward stream direction."
       },
       {
         "name": "assembly",
@@ -201,8 +201,8 @@
       },
       {
         "name": "rotation-release",
-        "value": "yawVelocity=delta*.65; damping=pow(.9,dt*60)",
-        "purpose": "Decaying sealed-bottle pointer-release inertia; stops below .00005."
+        "value": "two-axis velocity=delta*.65; world Y/X quaternion increments; damping=pow(.9,dt*60); four arrow keys; Home/double-click reset",
+        "purpose": "Direct horizontal, vertical and diagonal bottle inspection. Reduced motion disables release inertia. World-space sand clipping follows the bottle; the initial view is preserved."
       },
       {
         "name": "reduced-motion",
@@ -272,9 +272,9 @@
         "purpose": "Procedurally textured stopper and small top bevel."
       },
       {
-        "name": "pixel-sand-field",
-        "value": "native Canvas2D:720×432; seeded LCG:907; sample interval:1.9px; jitter:1.7px; 85% 2×2 grains, otherwise 1×1; image-rendering:pixelated; warm luminance palette; background seeded LCG:412",
-        "purpose": "Loose play uses hard pixel grains with photo-derived warm colors, per-grain shade and a brighter top-left pixel over seeded brown gaps. The earliest cat demo guides this treatment. The same grains receive immutable routes from their actual brush positions. Pouring deposits at local impact points before downward and outward settling. Assembly clamps only to the finite native footprint, then drains a cumulative-area bank monotonically toward the low outlet; each grain remains visible until its own departure. Cancellation preserves brushed positions and completion restores the exact home picture. No projected WebGL plane renders the flat painting."
+        "name": "backlit-sand-field",
+        "value": "native Canvas2D:720×432; sample interval:1.9px; jitter:1.7px; per-grain optical density; asymmetric nine-sample kernels; additive thickness; 4096-entry RGB exponential-transmission tables; amber light field",
+        "purpose": "Photo tones are encoded by sand optical density. Clearing brightens the amber backing; accumulated grains darken naturally. The same particle positions retain push, restore and shared transfer events. Airborne route colors and packed bottle materials remain independent."
       },
       {
         "name": "photo-mantle",
@@ -321,11 +321,11 @@
         "docs/architecture.md",
         "docs/visual-references.md"
       ],
-      "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and rotation. The user rejected the clipped sand block, upward assembly suction, then a prematurely empty frame and mismatched transient bottle sand. The current finite-bank schedule and cloned lit assembly materials address the latest feedback. These corrections are authorized but not user-accepted; an internal review does not establish that acceptance.",
+      "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and starting view. The 2026-10-16 request explicitly opens multi-axis inspection rotation and requires a backlit flat painting. The user rejected the clipped sand block, upward assembly suction, then a prematurely empty frame and mismatched transient bottle sand. The current finite-bank schedule and cloned lit assembly materials address the latest feedback. These corrections are authorized but not user-accepted; an internal review does not establish that acceptance.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
       "notCanonized": "The clipped photographic plug, broad frame reveal, upward assembly suction, prematurely collapsed source bank and sparse point-cloud appearance for settled assembly sand were rejected by the user and are not design rules. Rotation buttons, seam disclosure, the push/swirl switch and the footer are removed from the current interface. Decorative slogans, repeated instructions, stage narration and permanent save-success copy remain removed. The downward-pour revision has actual three-width sequential captures. Internal verification does not establish user acceptance.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
-      "reviewEvidence": "Frozen bundle index-BO10qENP.js has actual desktop1440, mobile390, user590 and flat718 captures, eight pour phases and a26s normal-speed recording. Fresh internal finish disposition: ship. Motion review used recording/sequence samples, not raw MP4 playback. Static front and rotated PNG comparisons are exact. These checks do not establish user acceptance."
+      "reviewEvidence": "Final bundle index-CQGKD14N.js fixes cached-example clipping after tilt. The new assertion failed on index-CFi-zoXF.js and passed after the fix. A full suite had15 passed and one screenshot-helper failure; that corrected rotation test separately passed, including the new regression. Static front and yaw0.68 PNG comparisons remain exact. Desktop1440/mobile390/user590 captures, flat718 and27.44s normal-speed media originate from CFi-zoXF; the final fix only changes the cached-example path absent from those recordings. Independent review identified that single P2; targeted follow-up checks its resolution. Motion judgment uses sequential/recording samples, not raw MP4 playback. Internal checks do not establish user acceptance."
     },
     "camera": [
       {
@@ -378,14 +378,14 @@
       "refersTo": "sand-frame",
       "description": "Front-facing 5:3 native canvas; width is bounded by available stage height so the hint remains clear below it.",
       "html": "<div class=\"ds-sand-frame\"><canvas class=\"ds-sand-canvas\" width=\"720\" height=\"432\" role=\"img\" aria-label=\"平面沙画画框尺寸预览\"></canvas></div>",
-      "css": ".ds-sand-frame{--scene-height:460px;--frame-inset:30px;width:min(100%,600px,calc((var(--scene-height) - 112px - var(--frame-inset)) * 5 / 3 + var(--frame-inset)));padding:9px;border:6px solid #8b6d4b;background:#f3ead8;box-shadow:0 9px 18px #58432926}.ds-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair;image-rendering:pixelated}@media(max-width:760px){.ds-sand-frame{--scene-height:420px;--frame-inset:24px;padding:7px;border-width:5px}}"
+      "css": ".ds-sand-frame{--scene-height:460px;--frame-inset:30px;width:min(100%,600px,calc((var(--scene-height) - 112px - var(--frame-inset)) * 5 / 3 + var(--frame-inset)));padding:9px;border:6px solid #8b6d4b;background:#f3ead8;box-shadow:0 9px 18px #58432926}.ds-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair;}@media(max-width:760px){.ds-sand-frame{--scene-height:420px;--frame-inset:24px;padding:7px;border-width:5px}}"
     },
     {
       "name": "Unified gesture hint",
       "kind": "custom",
       "refersTo": "gesture-hint",
-      "description": "The same bottom-center location displays 左右拖动旋转 for a sealed bottle or 轻轻拨动，玩一会儿沙 for loose play. Hidden during busy or fatal states. This preview shows the sealed hint without a live scene.",
-      "html": "<div class=\"ds-gallery\"><div class=\"ds-scene-host\" tabindex=\"0\" role=\"img\" aria-label=\"暖调沙画瓶\" aria-describedby=\"ds-gesture-hint\" aria-keyshortcuts=\"ArrowLeft ArrowRight\"></div><p class=\"ds-gesture-hint\" id=\"ds-gesture-hint\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20\"/></svg><span>左右拖动旋转</span></p></div>",
+      "description": "The same bottom-center location displays 拖动旋转 · 双击回正 for a sealed bottle or 轻轻拨动，玩一会儿沙 for loose play. Hidden during busy or fatal states. This preview shows the sealed hint without a live scene.",
+      "html": "<div class=\"ds-gallery\"><div class=\"ds-scene-host\" tabindex=\"0\" role=\"img\" aria-label=\"暖调沙画瓶\" aria-describedby=\"ds-gesture-hint\" aria-keyshortcuts=\"ArrowLeft ArrowRight ArrowUp ArrowDown Home\"></div><p class=\"ds-gesture-hint\" id=\"ds-gesture-hint\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20\"/></svg><span>拖动旋转 · 双击回正</span></p></div>",
       "css": ".ds-gallery{background:var(--stage);position:relative;min-width:0;display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-scene-host{width:100%;height:460px;position:relative;touch-action:pan-y;cursor:grab;outline-offset:-5px;overflow:hidden}.ds-scene-host:active{cursor:grabbing}.ds-scene-host:focus-visible{outline:2px solid var(--clay);outline-offset:-5px}.ds-gesture-hint{position:absolute;left:50%;bottom:18px;z-index:4;display:flex;align-items:center;gap:9px;transform:translateX(-50%);margin:0;color:var(--muted);font-size:13px;line-height:20px;letter-spacing:.04em;white-space:nowrap;pointer-events:none}.ds-gesture-hint svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.25}@media(min-width:1600px){.ds-scene-host{height:520px}}@media(max-width:760px){.ds-scene-host{height:420px}}"
     },
     {

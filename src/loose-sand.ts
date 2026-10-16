@@ -24,9 +24,8 @@ type Grain = {
   omega: number;
   cx: number;
   cy: number;
-  size: number;
   color: number;
-  highlight: number;
+  density: number;
   delay: number;
 };
 type Stroke = { ax: number; ay: number; bx: number; by: number };
@@ -59,11 +58,21 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   const image = context.createImageData(width, height);
   const pixels = new Uint32Array(image.data.buffer);
   const background = new Uint32Array(width * height);
+  const density = new Float32Array(width * height);
+  const transmission = Array.from({ length: 3 }, () => new Float32Array(4096));
+  for (let i = 0; i < 4096; i++) {
+    transmission[0][i] = Math.exp(-i / 384 * 0.82);
+    transmission[1][i] = Math.exp(-i / 384 * 1.07);
+    transmission[2][i] = Math.exp(-i / 384 * 1.35);
+  }
   let seed = 412;
   const rand = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
   for (let i = 0; i < background.length; i++) {
-    const d = (rand() * 12) | 0;
-    background[i] = rgba(40 + d, 34 + d, 29 + d);
+    const x = (i % width) / width - 0.48;
+    const y = Math.floor(i / width) / height - 0.43;
+    const edge = Math.min(1, (x * x + y * y * 0.82) * 2.2);
+    const d = (rand() - 0.5) * 3;
+    background[i] = rgba(255 - edge * 25 + Math.min(0, d), 226 - edge * 58 + d, 128 - edge * 55 + d);
   }
   const grains: Grain[] = [];
   seed = 907;
@@ -84,9 +93,8 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     grains.push({
       x: px, y: py, hx: px, hy: py, sx: px, sy: py,
       vx: 0, vy: 0, omega: 0, cx: 0, cy: 0,
-      size: rand() < 0.85 ? 2 : 1,
+      density: (0.06 + Math.pow(1 - t, 1.6) * 3.8) * (rand() < 0.85 ? 1 : 0.85),
       color: rgba(sr, sg, sb),
-      highlight: rgba(Math.min(255, sr + 19), Math.min(255, sg + 17), Math.min(255, sb + 13)),
       delay: rand() * 140,
     });
   }
@@ -105,13 +113,12 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   let transfer: { plan: SandTransferPlan; progress: number } | null = null;
 
   function paint(): void {
-    pixels.set(background);
+    density.fill(0);
     const assembly = transfer?.plan.kind === 'assemble' ? sampleAssembly(transfer.plan, transfer.progress) : null;
     for (let i = 0; i < grains.length; i++) {
       const grain = grains[i];
       let px = grain.x;
       let py = grain.y;
-      const size = grain.size;
       if (transfer) {
         if (transfer.plan.kind === 'pour') {
           const route = transfer.plan.grains[i];
@@ -131,12 +138,24 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       const y = py | 0;
       if (x < 1 || x >= width - 2 || y < 1 || y >= height - 2) continue;
       const index = y * width + x;
-      pixels[index] = grain.highlight;
-      if (size === 2) {
-        pixels[index + 1] = grain.color;
-        pixels[index + width] = grain.color;
-        pixels[index + width + 1] = grain.color;
-      }
+      const mass = grain.density;
+      density[index] += mass;
+      density[index - 1] += mass * 0.38;
+      density[index + 1] += mass * 0.42;
+      density[index - width] += mass * 0.28;
+      density[index + width] += mass * 0.34;
+      density[index - width - 1] += mass * 0.09;
+      density[index - width + 1] += mass * 0.07;
+      density[index + width - 1] += mass * 0.08;
+      density[index + width + 1] += mass * 0.12;
+    }
+    for (let i = 0; i < pixels.length; i++) {
+      const light = background[i];
+      const amount = Math.min(4095, Math.round(density[i] * 384));
+      const r = 39 + ((light & 255) - 39) * transmission[0][amount];
+      const g = 20 + (((light >>> 8) & 255) - 20) * transmission[1][amount];
+      const b = 11 + (((light >>> 16) & 255) - 11) * transmission[2][amount];
+      pixels[i] = rgba(r, g, b);
     }
     context!.putImageData(image, 0, 0);
   }
