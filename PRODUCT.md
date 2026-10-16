@@ -75,3 +75,8 @@ Loose-flow correction. The user rejects the continuous uniform pillar and the hi
 
 
 Backlit frame and free rotation (2026-10-16). The user supplies an amber backlit sand-art reference and explicitly rejects bright grains over a dark backing. Flat photo tones now come from grain optical density over luminous amber glass; clearing brightens and overlapping piles darken. Keep visible fine grain, original photo recognition and existing push/restore behavior. This supersedes the earlier dark-gap loose treatment. The user also explicitly requests rotation in other directions, reopening rotation behavior while preserving the accepted initial bottle appearance. Support vertical/diagonal inspection, predictable reset and safe pour docking after arbitrary orientation. Do not alter the static bottle materials, geometry, camera or lighting.
+
+
+2026-10-16 最新用户修正：倒出时瓶身保持倾斜，瓶口朝下，从画框一侧移到另一侧；离口后的沙粒按离口位置下落，不能整条沙流跟着瓶子横移。平面增加拨沙/撒沙两种工具，共用连续“作用范围”滑杆，不使用小中大档位。装瓶、再次倒出和本机刷新均保留编辑结果；复原回到原始照片沙画。此要求替代旧的居中固定倒出、仅拨沙及切换时还原原图约束。未编辑瓶子的静止渲染继续冻结。
+
+最新界面要求已落实：短句放到品牌标题右侧并同排，移除独立标题占位；统一工具栏分组、间距和响应式布局，保持静止瓶子材质。

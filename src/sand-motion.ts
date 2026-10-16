@@ -111,6 +111,8 @@ function createAssemblyPlan(source: readonly GrainSource[]): AssemblyPlan {
   return { kind: 'assemble', grains: routes, samples: routes.filter((_, index) => index % 3 === 0), departureTimes: routes.map(grain => grain.depart).sort((a, b) => a - b), mouthTimes: routes.map(grain => grain.mouth).sort((a, b) => a - b), landingTimes: arrival.map(route => route.time), settledAt: 0.875 };
 }
 
+export const pourSweepX = (progress: number): number => 0.14 + 0.72 * eased((progress - 0.08) / 0.67);
+
 export function pourFlight(route: PourGrain, progress: number): SandPoint {
   const t = unit(progress);
   return { x: route.launch * (1 - t) + route.drift * t * (1 - t), y: t * (route.entry + (1 - route.entry) * t) };
@@ -132,15 +134,14 @@ export function createTransferPlan(kind: SandTransferKind, source: readonly Grai
   const grains = source.map((grain, index): PourGrain => {
     const homeX = grain.hx / 720;
     const homeY = grain.hy / 432;
-    const radius = Math.hypot((homeX - 0.5) * 1.5, (1 - homeY) * 0.85) / Math.hypot(0.75, 0.85);
-    const order = unit(radius + Math.sin(homeX * 17 + homeY * 9) * 0.018 + (sandNoise(index + 51) - 0.5) * 0.024);
+    const order = unit(homeX * 0.9 + (1 - homeY) * 0.08 + (sandNoise(index + 51) - 0.5) * 0.024);
     const packet = Math.min(21, Math.floor(order * 22));
     const packetWidth = 0.01 + sandNoise(packet + 113) * 0.008;
     const mouth = 0.11 + packet * 0.027 + sandNoise(index + 317) * packetWidth;
     const depart = mouth - 0.075 - sandNoise(index + 719) * 0.015;
-    const impactX = 0.5 + Math.sin(packet * 2.17) * 0.012 + (sandNoise(index + 79) - 0.5) * (0.035 + sandNoise(packet + 839) * 0.04);
+    const impactX = pourSweepX(mouth) + Math.sin(packet * 2.17) * 0.012 + (sandNoise(index + 79) - 0.5) * (0.035 + sandNoise(packet + 839) * 0.04);
     const ridge = Math.sin(packet * 1.7) * 0.022 + (sandNoise(index + 131) - 0.5) * 0.024;
-    const impactY = Math.min(homeY, Math.max(0.005, 1 - order * 1.18 + ridge));
+    const impactY = Math.max(0.005, Math.min(0.99, homeY + 0.045 + ridge));
     const land = mouth + 0.075 + Math.sqrt(impactY) * 0.055 + sandNoise(index + 419) * 0.012;
     const rest = 0.006 + sandNoise(index + 929) * 0.013;
     const settle = Math.min(0.99, land + rest + 0.055 + Math.abs(homeX - impactX) * 0.09 + sandNoise(index + 557) * 0.018);

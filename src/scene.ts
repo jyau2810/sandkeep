@@ -5,7 +5,7 @@ import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from
 import { createLooseSand, type LooseSand } from './loose-sand';
 import { createSandStream } from './sand-transfer';
 import { createSandReservoir } from './sand-reservoir';
-import { assemblyTilt, type FrameProjection, type SandPoint, type SandTransferKind, type SandTransferPlan } from './sand-motion';
+import { assemblyTilt, pourSweepX, type FrameProjection, type SandPoint, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
@@ -13,7 +13,9 @@ export interface BottleScene {
   disassemble(signal?: AbortSignal): Promise<SceneResult>;
   turnBy(radians: number, vertical?: number): void;
   resetView(): void;
+  getDraft(): BottleDraft | null;
   setLooseTool(tool: LooseTool): void;
+  setBrushRadius(radius: number): void;
   restoreLoose(): void;
   dispose(): void;
 }
@@ -719,14 +721,14 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const tip = smooth((progress - 0.04) / 0.25);
     const upright = new THREE.Quaternion().setFromAxisAngle(horizontalAxis, current.sourceYaw);
     const leveled = current.sourceOrientation.clone().slerp(upright, smooth(progress / 0.18));
-    bottle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI * tip).multiply(leveled);
+    bottle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI * 0.69 * tip).multiply(leveled);
     const uncork = smooth(progress / 0.16);
     corkMesh.position.y = 2.38 + uncork * 0.9;
     corkBevel.position.y = 2.595 + uncork * 0.9;
     corkMesh.visible = corkBevel.visible = progress < 0.18;
     const restingMouth = screenPoint(current.sourceMouth);
     const target = {
-      x: THREE.MathUtils.lerp(restingMouth.x, width / 2, prepare),
+      x: THREE.MathUtils.lerp(restingMouth.x, x + scale * innerX + parseFloat(sandStyle.width) * scale * pourSweepX(flow), prepare),
       y: THREE.MathUtils.lerp(restingMouth.y, height - 60 - finalHeight - 38, prepare),
     };
     let bottleScale = THREE.MathUtils.lerp(1, 0.46, prepare) * Math.max(0.001, 1 - restore);
@@ -739,7 +741,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
         const bounds = part.geometry.boundingBox!;
         for (const px of [bounds.min.x, bounds.max.x]) for (const py of [bounds.min.y, bounds.max.y]) for (const pz of [bounds.min.z, bounds.max.z]) {
           const point = screenPoint(part.localToWorld(new THREE.Vector3(px, py, pz)));
-          if (point.x < target.x) fit = Math.min(fit, (target.x - 12) / (target.x - point.x));
+          if (point.x < target.x) fit = Math.min(fit, (Math.min(target.x, x + scale * innerX + parseFloat(sandStyle.width) * scale * pourSweepX(0)) - 12) / (target.x - point.x));
           if (point.x > target.x) fit = Math.min(fit, (width - 12 - target.x) / (point.x - target.x));
           if (point.y < target.y) fit = Math.min(fit, (target.y - 12) / (target.y - point.y));
           if (point.y > target.y) fit = Math.min(fit, (height - 60 - target.y) / (point.y - target.y));
@@ -884,11 +886,30 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const group = new THREE.Group();
     group.add(mantle, cap);
     const looseSource = photoCanvas(source, 720, 432);
-    const loose = createLooseSand(looseSource, options.reducedMotion);
+    const loose = createLooseSand(looseSource, options.reducedMotion, draft.sandState);
     const reservoir = createSandReservoir(looseSource, sandRadiusAt, { mantle, cap, bottom: sandBase, top: fillTop });
     group.add(reservoir.object);
     looseSource.width = looseSource.height = 0;
     return { draft, loose, mantle, cap, fillPlane, reservoir, source, group };
+  }
+
+  function bakeEditedSand(): void {
+    if (!content) return;
+    const state = content.loose.exportState();
+    if (!state && !content.draft.sandState) return;
+    const picture = state ? content.loose.snapshot() : photoCanvas(content.source, 720, 432);
+    const material = packedSandMaterial(state ? picture : content.source, content.draft);
+    material.clippingPlanes = [content.fillPlane];
+    material.clipShadows = true;
+    content.group.remove(content.reservoir.object);
+    content.reservoir.dispose();
+    const previous = content.mantle.material;
+    content.mantle.material = material;
+    previous.map?.dispose(); previous.bumpMap?.dispose(); previous.dispose();
+    content.reservoir = createSandReservoir(picture, sandRadiusAt, { mantle: content.mantle, cap: content.cap, bottom: sandBase, top: fillTop });
+    content.group.add(content.reservoir.object);
+    picture.width = picture.height = 0;
+    content.draft = { ...content.draft, sandState: state };
   }
 
   async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
@@ -897,7 +918,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     for (const cancel of [...pendingDecodes]) cancel();
     finishTransfer('cancelled');
     if (disposed || contextLost || signal?.aborted) return 'cancelled';
-    if (content && content.draft.imageDataUrl === draft.imageDataUrl && content.draft.colorMode === draft.colorMode && content.draft.seamWidth === draft.seamWidth) {
+    if (content && content.draft.imageDataUrl === draft.imageDataUrl && content.draft.colorMode === draft.colorMode && content.draft.seamWidth === draft.seamWidth && content.draft.sandState === draft.sandState) {
       content.draft = draft;
       applyPresentation(next);
       return 'completed';
@@ -914,6 +935,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     }
     const previous = content;
     content = prepared;
+    if (draft.sandState) bakeEditedSand();
     bottle.add(prepared.group);
     host.append(prepared.loose.element);
     if (!previous || previous.draft.imageDataUrl !== draft.imageDataUrl) {
@@ -935,6 +957,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     returning = null;
     const destination: Presentation = kind === 'assemble' ? 'sealed' : 'loose';
     if (mode === destination) return Promise.resolve('completed');
+    if (kind === 'assemble') bakeEditedSand();
     if (options.reducedMotion || document.hidden) {
       const sourceYaw = 2 * Math.atan2(bottle.quaternion.y, bottle.quaternion.w);
       content.loose.beginTransfer(kind);
@@ -1091,6 +1114,9 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.setTool(tool);
     },
+    setBrushRadius(radius: number): void {
+      content?.loose.setBrushRadius(radius);
+    },
     restoreLoose(): void {
       if (disposed || contextLost || transfer || mode !== 'loose') return;
       content?.loose.restore();
@@ -1103,6 +1129,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       requestFrame();
     },
     resetView,
+    getDraft: () => content?.draft ?? null,
     dispose(): void {
       if (disposed) return;
       disposed = true;

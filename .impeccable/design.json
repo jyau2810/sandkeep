@@ -191,8 +191,8 @@
       },
       {
         "name": "pour",
-        "value": "2900ms; local picture yaw separated from stage-space tip; dock before departure; hold through final landing; loose intermittent gravity grains",
-        "purpose": "Capture the full source orientation, position and mouth. Smoothly level during preparation, then tip and dock before discharge. Cancellation restores the exact source pose. Free inspection must never change the downward stream direction."
+        "value": "2900ms; diagonal bottle at124deg; left-to-right shared mouth sweep; loose intermittent gravity grains",
+        "purpose": "Capture source pose, tip diagonally and traverse the frame. Each airborne grain retains its emission position while local deposits spread toward the edited painting. Never return to vertical inversion or a fixed-center stream. Static rendering remains unchanged."
       },
       {
         "name": "assembly",

@@ -4,7 +4,10 @@ import { assemblyPosition, sampleAssembly, createTransferPlan, pourDeposit, type
 export type LooseSand = {
   element: HTMLDivElement;
   setActive(active: boolean): void;
+  exportState(): Uint8Array | undefined;
+  snapshot(): HTMLCanvasElement;
   setTool(tool: LooseTool): void;
+  setBrushRadius(radius: number): void;
   restore(): void;
   beginTransfer(kind: SandTransferKind): SandTransferPlan;
   transferProgress(progress: number): void;
@@ -34,9 +37,9 @@ type Pointer = { id: number; x: number; y: number };
 const width = 720;
 const height = 432;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-const rgba = (r: number, g: number, b: number) => (255 << 24) | (b << 16) | (g << 8) | r;
+const rgba = (r: number, g: number, b: number) => (255 << 28) | (b << 16) | (g << 8) | r;
 
-export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolean): LooseSand {
+export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolean, savedState?: Uint8Array): LooseSand {
   const element = document.createElement('div');
   element.className = 'loose-sand-layer';
   element.hidden = true;
@@ -98,7 +101,21 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       delay: rand() * 140,
     });
   }
+  const originalGrains = grains.map(grain => ({ ...grain }));
+  let edited = false;
+  if (savedState && savedState.byteLength / 28 >= grains.length && savedState.byteLength / 28 <= 150000) {
+    const view = new DataView(savedState.buffer, savedState.byteOffset, savedState.byteLength);
+    for (let i = 0; i < view.byteLength / 28; i++) {
+      const x = view.getFloat64(i * 28, true), y = view.getFloat64(i * 28 + 8, true);
+      const grain = grains[i] ?? { ...originalGrains[0], hx: x, hy: y };
+      grain.x = grain.sx = x; grain.y = grain.sy = y;
+      grain.density = view.getFloat64(i * 28 + 16, true); grain.color = view.getUint32(i * 28 + 24, true);
+      grains[i] = grain;
+    }
+    edited = true;
+  }
   let tool: LooseTool = 'push';
+  let brushRadius = 28;
   let pointer: Pointer | null = null;
   let center = { x: width * 0.5, y: height * 0.48 };
   let strokes: Stroke[] = [];
@@ -173,6 +190,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     const dt = clamp((now - lastTime) / 16.667, 0.2, 2);
     lastTime = now;
     const spinning = (pointer !== null && tool === 'swirl') || now < spinUntil;
+    if (pointer && tool === 'sprinkle') sprinkle(pointer.x, pointer.y, Math.ceil(brushRadius * brushRadius * 0.025 * dt));
     const activeStrokes = strokes.splice(0);
     moving = false;
     if (restoreTime >= 0) {
@@ -187,7 +205,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
         grain.y = grain.hy + (dx * Math.sin(angle) + dy * Math.cos(angle)) * (1 - e);
         grain.vx = grain.vy = grain.omega = 0;
       }
-      if (elapsed > 980) restoreTime = -1;
+      if (elapsed > 980) { restoreTime = -1; edited = false; }
       else moving = true;
     } else {
       for (const grain of grains) {
@@ -199,9 +217,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
           const ox = grain.x - (stroke.ax + dx * t);
           const oy = grain.y - (stroke.ay + dy * t);
           const distance2 = ox * ox + oy * oy;
-          if (distance2 < 784) {
+          if (distance2 < brushRadius * brushRadius) {
             const distance = Math.sqrt(distance2) + 0.01;
-            const falloff = 1 - distance / 28;
+            const falloff = 1 - distance / brushRadius;
             const speed = Math.min(1, Math.sqrt(length) / 14);
             const push = (1.7 + speed * 2.8) * falloff;
             grain.omega = 0;
@@ -245,7 +263,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       }
     }
     paint();
-    if (moving || spinning || strokes.length) wake();
+    if (moving || spinning || strokes.length || (pointer && tool === 'sprinkle')) wake();
   }
 
   function point(event: PointerEvent): { x: number; y: number } {
@@ -262,15 +280,35 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     if (id !== undefined && canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
   }
 
+  function sprinkle(x: number, y: number, amount: number): void {
+    edited = true;
+    if (grains.length >= 150000) {
+      for (const grain of grains) {
+        const d = Math.hypot(grain.x - x, grain.y - y) / brushRadius;
+        if (d < 1) grain.density = Math.min(16, grain.density + (1 - d) * amount / (brushRadius * brushRadius) * 0.4);
+      }
+    }
+    for (let i = 0; i < amount && grains.length < 150000; i++) {
+      const angle = rand() * Math.PI * 2;
+      const distance = Math.sqrt(rand()) * brushRadius;
+      const px = clamp(x + Math.cos(angle) * distance, 1, width - 3);
+      const py = clamp(y + Math.sin(angle) * distance, 1, height - 3);
+      grains.push({ ...originalGrains[0], x: px, y: py, hx: px, hy: py, sx: px, sy: py,
+        vx: 0, vy: 0, omega: 0, density: Math.fround(0.9 + rand() * 1.2), color: rgba(115, 73, 34) });
+    }
+  }
+
   function onPointerDown(event: PointerEvent): void {
     if (!active || disposed || document.hidden || pointer || (event.pointerType === 'mouse' && event.button !== 0)) return;
     event.preventDefault();
     restoreTime = -1;
+    edited = true;
     spinUntil = 0;
     const next = point(event);
     pointer = { id: event.pointerId, ...next };
     center = next;
     canvas.setPointerCapture(event.pointerId);
+    if (tool === 'sprinkle') sprinkle(next.x, next.y, Math.ceil(brushRadius * brushRadius * 0.7));
     if (tool === 'push') strokes.push({ ax: next.x, ay: next.y, bx: next.x + 0.01, by: next.y });
     wake();
   }
@@ -282,6 +320,11 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     if (tool === 'push') {
       strokes.push({ ax: pointer.x, ay: pointer.y, bx: next.x, by: next.y });
       if (strokes.length > 12) strokes.shift();
+    }
+    if (tool === 'sprinkle') {
+      const dx = next.x - pointer.x, dy = next.y - pointer.y;
+      const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / Math.max(2, brushRadius * 0.3)));
+      for (let i = 1; i <= steps; i++) sprinkle(pointer.x + dx * i / steps, pointer.y + dy * i / steps, Math.ceil(brushRadius * brushRadius * 0.15));
     }
     Object.assign(pointer, next);
     center = next;
@@ -319,10 +362,29 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
 
   return {
     element,
+    exportState(): Uint8Array | undefined {
+      if (!edited) return undefined;
+      const bytes = new Uint8Array(grains.length * 28);
+      const view = new DataView(bytes.buffer);
+      grains.forEach((grain, i) => {
+        view.setFloat64(i * 28, grain.x, true); view.setFloat64(i * 28 + 8, grain.y, true);
+        view.setFloat64(i * 28 + 16, grain.density, true); view.setUint32(i * 28 + 24, grain.color, true);
+      });
+      return bytes;
+    },
+    snapshot(): HTMLCanvasElement {
+      paint();
+      const copy = document.createElement('canvas'); copy.width = width; copy.height = height;
+      copy.getContext('2d')!.drawImage(canvas, 0, 0);
+      return copy;
+    },
     setActive(next): void {
       active = next;
       element.hidden = !next;
       syncActivity();
+    },
+    setBrushRadius(radius): void {
+      if (Number.isFinite(radius)) brushRadius = clamp(radius, 8, 64);
     },
     setTool(next): void {
       if (disposed) return;
@@ -341,6 +403,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       releasePointer();
       spinUntil = 0;
       strokes = [];
+      grains.length = originalGrains.length;
+      grains.forEach((grain, i) => { grain.density = originalGrains[i].density; grain.color = originalGrains[i].color; });
+      if (reducedMotion) edited = false;
       for (const grain of grains) {
         grain.sx = grain.x;
         grain.sy = grain.y;
@@ -355,7 +420,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
     beginTransfer(kind): SandTransferPlan {
       active = false;
       syncActivity();
-      const plan = createTransferPlan(kind, grains);
+      const plan = createTransferPlan(kind, grains.map(grain => ({ ...grain, hx: grain.x, hy: grain.y })));
       transfer = { plan, progress: 0 };
       element.hidden = false;
       paint();
@@ -370,8 +435,6 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       if (!transfer || disposed) return;
       if (completed) {
         for (const grain of grains) {
-          grain.x = grain.hx;
-          grain.y = grain.hy;
           grain.vx = grain.vy = grain.omega = 0;
         }
         moving = false;

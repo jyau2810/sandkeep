@@ -1,4 +1,4 @@
-import { assemblyOutlet, projectFrame, pourFlight, sandNoise, type FrameProjection, type SandTransferPlan } from './sand-motion';
+import { assemblyOutlet, projectFrame, pourFlight, pourSweepX, sandNoise, type FrameProjection, type SandTransferPlan } from './sand-motion';
 
 type Point = Readonly<{ x: number; y: number }>;
 export type SandStream = {
@@ -71,8 +71,9 @@ export function createSandStream(host: HTMLElement): SandStream {
         if (t <= 0 || t >= 1) continue;
         const target = projectFrame(frame, { x: route.impactX, y: route.impactY });
         const fall = pourFlight(route, t);
+        const emittedX = projectFrame(frame, { x: pourSweepX(route.mouth), y: 0 }).x;
         const point = {
-          x: mouth.x + (target.x - mouth.x) * t + fall.x * frame.xAxis.x,
+          x: emittedX + (target.x - emittedX) * t + fall.x * frame.xAxis.x,
           y: mouth.y + (target.y - mouth.y) * fall.y,
         };
         grain(point, route.color, 0.55 + sandNoise(index + 933) * 0.55);

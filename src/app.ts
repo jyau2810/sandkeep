@@ -23,11 +23,9 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     <div class="page-shell">
       <header class="site-header">
         <a class="brand" href="./" aria-label="砂藏首页"><svg class="brand-mark" viewBox="0 0 32 40" aria-hidden="true"><path d="M11 3h10v7l5 6v17a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V16l5-6V3Z"/><path d="M7 25c6-7 12 6 18-1M7 29c7-5 12 5 18 0M12 7h8"/></svg><span class="brand-name">砂藏</span><span class="brand-english">SANDKEEP</span></a>
+        <h1 class="site-tagline">把回忆装进沙子里</h1>
       </header>
       <main>
-        <div class="intro">
-          <h1>把回忆装进沙子里</h1>
-        </div>
         <section class="studio" aria-label="沙画工作台">
           <div class="studio-toolbar">
             <div class="photo-picker"><img class="photo-thumb" alt="当前照片预览"><label class="upload-button" for="photo-input">换张照片<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5"/></svg></label><input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="换张照片" aria-describedby="photo-help"></div>
@@ -40,7 +38,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
             <p class="gesture-hint" id="gesture-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20"/></svg><span>拖动旋转 · 双击回正</span></p>
           </div>
           <div class="workbench-feedback"><div class="status-message" role="status" aria-live="polite" data-testid="app-status" hidden></div><div class="issue-message" role="alert" hidden></div></div>
-          <div class="workbench-options"><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
+          <div class="workbench-options"><div class="sand-tools" role="group" aria-label="沙画操作" hidden><button type="button" data-sand-tool="push" aria-pressed="true">拨沙</button><button type="button" data-sand-tool="sprinkle" aria-pressed="false">撒沙</button></div><label class="brush-control" hidden>作用范围<input type="range" min="8" max="64" step="1" value="28" aria-label="作用范围"></label><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
         </section>
       </main>
     </div>`;
@@ -61,6 +59,11 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
   const fallback = element<HTMLDivElement>('.scene-fallback');
   const gestureHint = element<HTMLParagraphElement>('.gesture-hint');
   const restore = element<HTMLButtonElement>('[data-action="restore"]');
+  const brushControl = element<HTMLLabelElement>('.brush-control');
+  const brushInput = element<HTMLInputElement>('.brush-control input');
+  let brushRadius = 28;
+  let sandTool: 'push' | 'sprinkle' = 'push';
+  const sandTools = element<HTMLDivElement>('.sand-tools');
   const store = createBottleStore();
   const lifetime = new AbortController();
   let scene: BottleScene | null = null;
@@ -104,7 +107,13 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     primary.querySelector('span')!.textContent = phase.kind === 'pouring' ? '正在倒出…'
       : phase.kind === 'assembling' ? '正在装瓶…' : phase.kind === 'loading' ? '正在准备…' : sealed ? '倒出成画' : '装进瓶子';
     gestureHint.hidden = !sealedReady && !looseReady;
-    gestureHint.querySelector('span')!.textContent = sealed ? '拖动旋转 · 双击回正' : '轻轻拨动，玩一会儿沙';
+    gestureHint.querySelector('span')!.textContent = sealed ? '拖动旋转 · 双击回正' : sandTool === 'sprinkle' ? '轻轻撒落，添一些沙' : '轻轻拨动，玩一会儿沙';
+    sandTools.hidden = !looseReady;
+    sandTools.querySelectorAll<HTMLButtonElement>('button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.sandTool === sandTool)));
+    if (looseReady) scene?.setLooseTool(sandTool);
+    brushControl.hidden = !looseReady;
+    brushInput.disabled = !looseReady;
+    scene?.setBrushRadius(brushRadius);
     restore.hidden = !looseReady;
     restore.disabled = !looseReady;
     if (current) {
@@ -212,9 +221,10 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
       render();
       const result = await ensureScene().assemble(signal);
       if (!currentIntent(id) || result === 'cancelled') return;
-      phase = { kind: 'sealed', draft: previous.draft };
+      const draft = scene?.getDraft() ?? previous.draft;
+      phase = { kind: 'sealed', draft };
       render();
-      await saveDraft(previous.draft, id);
+      await saveDraft(draft, id);
     } catch (error) {
       if (!currentIntent(id)) return;
       phase = { kind: 'failure', issue: issueFrom(error), previous };
@@ -226,6 +236,15 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     const file = fileInput.files?.[0];
     fileInput.value = '';
     if (file) void loadPhoto(file);
+  }, { signal: lifetime.signal });
+  sandTools.querySelectorAll<HTMLButtonElement>('button').forEach(button => button.addEventListener('click', () => {
+    if (!canPlayLoose()) return;
+    sandTool = button.dataset.sandTool === 'sprinkle' ? 'sprinkle' : 'push';
+    render();
+  }, { signal: lifetime.signal }));
+  brushInput.addEventListener('input', () => {
+    brushRadius = Number(brushInput.value);
+    scene?.setBrushRadius(brushRadius);
   }, { signal: lifetime.signal });
   primary.addEventListener('click', () => { void bottle(); }, { signal: lifetime.signal });
   element<HTMLButtonElement>('[data-action="restore"]').addEventListener('click', () => {

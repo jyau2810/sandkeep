@@ -1,10 +1,11 @@
 export type ColorMode = 'original' | 'warm';
 export type Presentation = 'loose' | 'sealed';
-export type LooseTool = 'push' | 'swirl';
+export type LooseTool = 'push' | 'swirl' | 'sprinkle';
 
 export type BottleDraft = Readonly<{
   schemaVersion: 1;
   imageDataUrl: string;
+  sandState?: Uint8Array;
   title: string;
   colorMode: ColorMode;
   seamWidth: number;
@@ -53,8 +54,17 @@ export function parseDraft(value: unknown): BottleDraft | null {
     || (d.colorMode !== 'original' && d.colorMode !== 'warm')
     || typeof d.seamWidth !== 'number' || !Number.isFinite(d.seamWidth) || d.seamWidth < 0 || d.seamWidth > 0.04
     || typeof d.createdAt !== 'number' || !Number.isFinite(d.createdAt) || d.createdAt < 0) return null;
+  if (d.sandState !== undefined) {
+    if (!(d.sandState instanceof Uint8Array) || d.sandState.byteLength % 28 !== 0 || d.sandState.byteLength < 28 || d.sandState.byteLength > 150000 * 28) return null;
+    const state = new DataView(d.sandState.buffer, d.sandState.byteOffset, d.sandState.byteLength);
+    for (let i = 0; i < state.byteLength; i += 28) {
+      const x = state.getFloat64(i, true), y = state.getFloat64(i + 8, true), density = state.getFloat64(i + 16, true);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(density) || x < 0 || x > 720 || y < 0 || y > 432 || density < 0 || density > 16) return null;
+    }
+  }
   return {
     schemaVersion: 1, imageDataUrl: d.imageDataUrl, title: d.title,
+    ...(d.sandState instanceof Uint8Array ? { sandState: d.sandState } : {}),
     colorMode: 'warm', seamWidth: d.seamWidth, createdAt: d.createdAt,
   };
 }

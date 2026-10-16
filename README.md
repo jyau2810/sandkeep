@@ -41,7 +41,7 @@ npm run preview
 - `src/domain.ts` 定义可保存的瓶子数据。
 - `src/scene.ts` 管理瓶子、双向转场和旋转。
 - `src/sand-transfer.ts` 绘制连接画框与瓶口的沙流。
-- `src/loose-sand.ts` 管理平面沙画的拨沙和复原。
+- `src/loose-sand.ts` 管理平面沙画的拨沙、撒沙、连续作用范围和复原；装瓶及刷新保留编辑结果。
 - `src/app.ts` 管理制作流程与页面。
 - `src/photo.ts` 校验并缩小照片。
 - `src/persistence.ts` 保存当前浏览器的最新瓶子。

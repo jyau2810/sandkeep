@@ -15,10 +15,10 @@ colors:
 typography:
   display:
     fontFamily: "'Sandkeep Serif', 'Songti SC', serif"
-    fontSize: "36px"
+    fontSize: "20px"
     fontWeight: 400
     lineHeight: 1.5
-    letterSpacing: "-.025em"
+    letterSpacing: ".02em"
   brand:
     fontFamily: "'Sandkeep Serif', 'Songti SC', serif"
     fontSize: "27px"
@@ -161,7 +161,7 @@ At widths up to (760px), the headline becomes (28px) with line height (1.6), and
 
 The page is centered within a maximum width of (1224px), with base horizontal padding of (48px). Its ruled header is (80px) high. The headline sits (32px) below it and (25px) above one full-width workbench. The workbench toolbar places the photo thumbnail and upload route on the left and a (168px × 48px) primary switch on the right; file guidance sits below the photo route. There is no naming field or detached creation column.
 
-The art has a stable (460px) scene host in sealed, loose, pouring and assembling states. One gesture hint sits inside the stage, centered horizontally and (18px) above its bottom edge. It reads "拖动旋转 · 双击回正" for a ready sealed bottle and "轻轻拨动，玩一会儿沙" for ready loose play. The hint is hidden during loading, transfers and fatal render failures. There is no bottom tool band.
+The art has a stable (460px) scene host in sealed, loose, pouring and assembling states. One gesture hint sits inside the stage, centered horizontally and (18px) above its bottom edge. It reads "拖动旋转 · 双击回正" for a ready sealed bottle and "轻轻拨动，玩一会儿沙" for ready loose play. The hint is hidden during loading, transfers and fatal render failures. The controls below the stage show 拨沙 / 撒沙 and a continuous 作用范围 slider only in the ready flat state. They wrap on narrow screens and do not overlap the artwork.
 
 Below the stage, feedback appears only when needed. A separate action row follows with an (8px) top margin and (28px) gap. The outlined "复原" button sits beside the primary action above the stage during ready loose play. "换回示例" stays on the right, with automatic left margin. The seam disclosure, rotation buttons, tool switch and footer are removed. Photos still process locally. Completed assembly still saves the draft to this browser, and startup restores its latest saved bottle. Saving and storage-unavailable feedback remain inline.
 
@@ -258,3 +258,8 @@ Interactive elements use a (2px) clay focus outline with (5px) offset. The stage
 - **Don't** pull assembly grains upward from the frame or add a tilt over the old suction path.
 - **Don't** hide the source bank before its scheduled departures or render settled assembly sand as a sparse point cloud.
 - **Don't** treat the earlier bottle acceptance as approval of the new interface or transfer sequence, or claim photorealism from the reference photographs.
+
+
+Latest authorized behavior: pour at a diagonal while sweeping left to right, with airborne grains retaining their emission positions. Flat edits persist through bottling, pouring and local reload. The continuous radius slider uses8–64 native pixels (default28), not preset size tiers. Restore returns to the original photo; the unedited bottle renderer remains unchanged.
+
+2026-10-16 标题布局：品牌与「把回忆装进沙子里」在页眉同一行，短句位于品牌右侧；取消独立大标题区。桌面短句 20px，手机 16px，窄屏 15px。主区上间距 28px / 手机 20px，舞台尺寸不变。拨沙/撒沙以紧凑分段按钮分组，连续作用范围紧随，换回示例右对齐；320px 下示例按钮自然换行。
