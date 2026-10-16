@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-15T16:44:53.796646+00:00",
+  "generatedAt": "2026-10-16T01:32:05.863429+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -234,8 +234,8 @@
       },
       {
         "name": "assembly",
-        "value": "2800ms; per-grain actual brush positions; shared departure, mouth, land and settle times",
-        "purpose": "Remove grains from their current frame positions, route them to the projected mouth and accumulate interior points before restoring the accepted packed body, resting bottle pose and cork."
+        "value": "4000ms; frame tilt:28deg; affine frame projection; per-grain slide, edge, departure, mouth, land and settle times; last settle:3500ms; bottle return starts:3560ms",
+        "purpose": "Shrink and lift the frame before tilting. Slide the actual brushed grains under screen gravity to the lower edge and bottom-right outlet, bridge the mat and wooden rim, then fall 26px into the upright bottle mouth below. Hold both transfer poses through flow. Fill interior layers by arrival order from the bottom, then restore the accepted packed body, resting bottle pose and cork."
       },
       {
         "name": "rotation-release",
@@ -322,7 +322,7 @@
       {
         "name": "pixel-sand-field",
         "value": "native Canvas2D:720×432; seeded LCG:907; sample interval:1.9px; jitter:1.7px; 85% 2×2 grains, otherwise 1×1; image-rendering:pixelated; warm luminance palette; background seeded LCG:412",
-        "purpose": "Loose play uses hard pixel grains with photo-derived warm colors, per-grain shade and a brighter top-left pixel over seeded brown gaps. The earliest cat demo guides this treatment. The same grains receive immutable transfer routes from their actual brush positions to home positions. Pouring deposits at local impact points before downward and outward settling. No projected WebGL plane renders the flat painting."
+        "purpose": "Loose play uses hard pixel grains with photo-derived warm colors, per-grain shade and a brighter top-left pixel over seeded brown gaps. The earliest cat demo guides this treatment. The same grains receive immutable transfer routes from their actual brush positions. Pouring deposits at local impact points before downward and outward settling. Assembly slides grains under screen gravity to the lower edge and bottom-right outlet. Cancellation preserves brushed positions and completion restores the exact home picture. No projected WebGL plane renders the flat painting."
       },
       {
         "name": "photo-mantle",
@@ -341,13 +341,13 @@
       },
       {
         "name": "moving-sand-interior",
-        "value": "transient THREE.Points with ShaderMaterial; seeded angle, height and radius; compact shaded point sprites; dynamic positions; shared SandTransferPlan mouth times",
-        "purpose": "Replace the packed mantle and cap during flow. Pouring shifts and compresses remaining grains toward gravity in bottle coordinates, then slides each toward the neck. Assembly introduces grains at mouth crossings, drops and spreads them inside the bounded profile. Photo-derived warm colors follow the original bottle coordinates. The resting bottle uses its accepted packed renderer. This is an authored volume without collisions."
+        "value": "transient THREE.Points with ShaderMaterial; seeded angle, radius and pour height; compact shaded point sprites; dynamic positions; shared SandTransferPlan mouth times; assembly height assigned by arrival order",
+        "purpose": "Replace the packed mantle and cap during flow. Pouring shifts and compresses remaining grains toward gravity in bottle coordinates, then slides each toward the neck. Assembly introduces grains at matching mouth crossings, drops and spreads them into layers assigned by arrival order, filling from the bottom. Photo-derived warm colors follow the original bottle coordinates. The resting bottle uses its accepted packed renderer. This is an authored volume without collisions."
       },
       {
         "name": "mouth-grain-stream",
-        "value": "transparent Canvas2D overlay; DPR capped at 2; every twelfth route sampled from the native grain plan; cubic paths; warm bodies and top-left highlights",
-        "purpose": "Join the projected mouth of the actual moving bottle to the corresponding route impact point during pouring, or its actual brush position during assembly. Interior visibility and flat arrival use the same route times. Stream resources clear after transfer. Paths are authored; there is no grain collision simulation."
+        "value": "transparent Canvas2D overlay; DPR capped at 2; route samples from the native grain plan; affine frame origin and axes; explicit outer-rim lip; gravity fall during assembly; cubic paths during pouring; warm bodies and top-left highlights",
+        "purpose": "Pouring joins the projected bottle mouth to each route impact point. Assembly starts at the tilted native canvas outlet, crosses the mat and outer wooden rim, then falls into the actual mouth below. The outlet and mouth hold their poses during flow. Interior visibility and flat grain departure use the same route times. Stream resources clear after transfer. Paths are authored without grain collisions."
       }
     ],
     "provenance": {
@@ -369,11 +369,11 @@
         "docs/architecture.md",
         "docs/visual-references.md"
       ],
-      "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and rotation. The user then rejected the clipped sand block and requested fine interior outflow, local landings and gradual spreading, plus improved reverse filling and removal of unnecessary copy. This correction is authorized but not user-accepted. An internal review does not establish user acceptance.",
+      "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and rotation. The user rejected the clipped sand block and requested fine outflow, local landings and gradual spreading. The user then rejected upward suction during assembly and requested a tilted frame pouring under gravity into a bottle below. The gravity correction is authorized but not user-accepted. An internal review does not establish user acceptance.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
-      "notCanonized": "The prior clipped photographic plug and broad frame reveal were explicitly rejected by the user and are not design rules. Decorative slogans, repeated instructions, stage narration and permanent save-success copy are removed in source. This source-only documentation pass does not adjudicate the new motion or report render parity.",
+      "notCanonized": "The clipped photographic plug, broad frame reveal and upward assembly suction were explicitly rejected by the user and are not design rules. Decorative slogans, repeated instructions, stage narration and permanent save-success copy remain removed. This source-only documentation pass does not adjudicate the new gravity motion or report render parity.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
-      "reviewEvidence": "The earlier .impeccable/review/linked-sand captures record the rejected motion and do not validate this correction. Static renderer baselines remain 8c2d986 / 2cf32f9, with 631ad5f recording the pre-correction implementation. This pass checked source without a browser, new finish disposition or user acceptance."
+      "reviewEvidence": "The earlier .impeccable/review/linked-sand captures record rejected block motion. The subsequent user rejection of upward suction requires separate evidence for the gravity sequence. Earlier captures and a previous ship verdict do not validate this correction. Static renderer baselines remain 8c2d986 / 2cf32f9, with 631ad5f recording the implementation before the fine-flow correction. This pass checked source without a browser, new finish disposition or user acceptance."
     },
     "camera": [
       {
@@ -462,13 +462,13 @@
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with \"瓶子的效果可以了\". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.\n\nThe user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. The correction uses a temporary 3D grain volume and one route schedule across the interior, stream and flat painting. Decorative and repeated copy is removed. These changes have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with \"瓶子的效果可以了\". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.\n\nThe user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. That correction uses a temporary 3D grain volume and one route schedule across the interior, stream and flat painting. The user then rejected upward suction during assembly and requested a tilted frame pouring into a bottle below. Assembly now lifts and tilts the native frame, slides grains to its lower corner and drops them through the actual mouth. Decorative and repeated copy is removed. These changes have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a photograph rendered as warm sand.",
       "Chinese serif display type paired with Chinese system sans controls.",
       "One workbench with photo selection and the primary switch above the art, and state-specific tools below.",
       "Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.",
-      "A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame."
+      "A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame. Assembly pours downward from a tilted frame."
     ],
     "rules": [
       {
@@ -493,7 +493,8 @@
       "Do keep interactive targets at least the observed 44px height or diameter, with the existing clay focus treatment.",
       "Do place photo selection and the primary switch above the art, with the relevant rotation or sand tools directly below.",
       "Do retain one scene height through each ready and transfer state at the active breakpoint.",
-      "Do preserve the finished photograph while turning the bottle and respect reduced motion."
+      "Do preserve the finished photograph while turning the bottle and respect reduced motion.",
+      "Do hold the tilted frame outlet above the actual mouth during assembly, then return the bottle to its accepted resting renderer after the last grain settles."
     ],
     "donts": [
       "Don't extend the picture frame’s soft shadow into ordinary controls or introduce rounded floating panels.",
@@ -502,6 +503,7 @@
       "Don't copy the loose field's dark gaps onto packed sand. Keep packed grain variation near its local photo color.",
       "Don't alter the accepted warm sealed renderer to tune loose play or transient transfer poses.",
       "Don't drain a clipped photographic block or reveal the whole frame independently of grain landings.",
+      "Don't pull assembly grains upward from the frame or add a tilt over the old suction path.",
       "Don't treat the earlier bottle acceptance as approval of the new interface or transfer sequence, or claim photorealism from the reference photographs."
     ]
   }

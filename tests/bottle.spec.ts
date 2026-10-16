@@ -98,6 +98,10 @@ async function depositedPixels(page: Page, emptyPicture: string): Promise<number
 async function expectVisibleTransfer(page: Page): Promise<void> {
   const canvas = page.locator('canvas.sand-transfer-canvas');
   await expect(canvas).toBeVisible();
+  if (await page.locator('#app').getAttribute('data-phase') === 'assembling') {
+    await expectGravityPacking(page);
+    return;
+  }
   const visiblePixels = await canvas.evaluate(node => {
     const surface = node as HTMLCanvasElement;
     const pixels = surface.getContext('2d')!.getImageData(0, 0, surface.width, surface.height).data;
@@ -106,6 +110,41 @@ async function expectVisibleTransfer(page: Page): Promise<void> {
     return count;
   });
   expect(visiblePixels).toBeGreaterThan(120);
+}
+
+async function expectGravityPacking(page: Page): Promise<void> {
+  const geometry = await page.evaluate(() => {
+    const frame = document.querySelector('.loose-sand-frame') as HTMLElement;
+    const painting = document.querySelector('.loose-sand-canvas') as HTMLCanvasElement;
+    const stream = document.querySelector('.sand-transfer-canvas') as HTMLCanvasElement;
+    const host = document.querySelector('.scene-host')!;
+    const matrix = new DOMMatrix(getComputedStyle(frame).transform);
+    const box = painting.getBoundingClientRect();
+    const hostBox = host.getBoundingClientRect();
+    const w = painting.clientWidth;
+    const h = painting.clientHeight;
+    const originX = box.left - Math.min(0, matrix.a * w, matrix.c * h, matrix.a * w + matrix.c * h);
+    const originY = box.top - Math.min(0, matrix.b * w, matrix.d * h, matrix.b * w + matrix.d * h);
+    const outlet = { x: originX + matrix.a * w + matrix.c * h - hostBox.left, y: originY + matrix.b * w + matrix.d * h - hostBox.top };
+    const pixels = stream.getContext('2d')!.getImageData(0, 0, stream.width, stream.height).data;
+    let minX = stream.width, maxX = 0, minY = stream.height, maxY = 0, count = 0;
+    const occupiedRows = new Set<number>();
+    for (let y = 0; y < stream.height; y++) for (let x = 0; x < stream.width; x++) {
+      if (pixels[(y * stream.width + x) * 4 + 3] < 128) continue;
+      minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y); maxY = Math.max(maxY, y); count++;
+      occupiedRows.add(y);
+    }
+    const scale = stream.getBoundingClientRect().width / stream.width;
+    return { angle: Math.atan2(matrix.b, matrix.a), outlet, minY: minY * scale, maxY: maxY * scale, streamWidth: (maxX - minX) * scale, count, rowCoverage: occupiedRows.size / (maxY - minY + 1) };
+  });
+  expect(geometry.angle).toBeGreaterThan(Math.PI / 18);
+  expect(geometry.angle).toBeLessThan(Math.PI / 3);
+  expect(geometry.count).toBeGreaterThan(40);
+  expect(geometry.rowCoverage).toBeGreaterThan(0.65);
+  expect(geometry.minY).toBeGreaterThanOrEqual(geometry.outlet.y - 5);
+  expect(geometry.maxY).toBeGreaterThan(geometry.outlet.y + 12);
+  expect(geometry.streamWidth).toBeLessThan(35);
 }
 
 test('a personal photo becomes a warm bottle and survives reopening without a naming step', async ({ page }) => {
@@ -356,7 +395,7 @@ test('reduced motion still creates a bottle when browser storage is denied', asy
 });
 
 
-test('sand visibly pours into the frame and leaves it again while repeated actions stay blocked', async ({ page }) => {
+test('sand pours into the frame and the tilted frame drains downward while repeated actions stay blocked', async ({ page }) => {
   test.setTimeout(60000);
   await pauseReadyScene(page);
   const stage = page.getByTestId('bottle-scene');
@@ -394,7 +433,7 @@ test('sand visibly pours into the frame and leaves it again while repeated actio
   await expect(stage).toHaveAttribute('data-presentation', 'assembling');
   await expectVisibleTransfer(page);
   expect(await flatPicture(page)).not.toBe(fullPainting);
-  await page.clock.runFor(1800);
+  await page.clock.runFor(3000);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeVisible();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
@@ -428,7 +467,7 @@ test('a new photo interrupts either direction without an old animation taking ov
   await expect(page.getByAltText('当前照片预览')).toHaveAttribute('src', replacementPhoto!);
   await expect(page.locator('canvas.sand-transfer-canvas')).toBeHidden();
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
-  await page.clock.runFor(3100);
+  await page.clock.runFor(4300);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect.poll(async () => (await latestBottle(page)).imageDataUrl).toBe(replacementPhoto);
 });
@@ -454,7 +493,7 @@ test('resizing during each transfer still returns a complete rectangular paintin
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.clock.runFor(600);
   await expectVisibleTransfer(page);
-  await page.clock.runFor(1800);
+  await page.clock.runFor(3000);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await page.clock.runFor(3000);

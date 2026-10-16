@@ -58,9 +58,8 @@ export function createSandReservoir(source: HTMLCanvasElement, radiusAt: (y: num
     const colors: number[] = [];
     const sizes: number[] = [];
     for (let index = 0; index < plan.grains.length; index += 3) {
-      const route = plan.grains[index];
       const noise = sandNoise(index + 843);
-      const layer = plan.kind === 'assemble' ? bottleMass(plan, route.mouth) : sandNoise(index + 199);
+      const layer = plan.kind === 'assemble' ? plan.grains[index].layer : sandNoise(index + 199);
       const y = -1.535 + layer * 3.635;
       const around = sandNoise(index + 53);
       const angle = around * Math.PI * 2;

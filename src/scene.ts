@@ -5,7 +5,7 @@ import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from
 import { createLooseSand, type LooseSand } from './loose-sand';
 import { createSandStream } from './sand-transfer';
 import { createSandReservoir } from './sand-reservoir';
-import type { SandTransferKind, SandTransferPlan } from './sand-motion';
+import { assemblyTilt, type FrameProjection, type SandPoint, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export interface BottleScene {
   show(draft: BottleDraft, mode: Presentation, signal?: AbortSignal): Promise<SceneResult>;
@@ -52,7 +52,7 @@ const sandProfile = [
   [0.963, -1.31], [radius, 1.20], [0.960, 1.35], [0.925, 1.52],
   [0.805, 1.68], [0.626, 1.84], [0.463, 1.98], [0.425, 2.05], [0.422, fillTop],
 ] as const;
-const transferDuration = { assemble: 2800, pour: 2900 } as const;
+const transferDuration = { assemble: 4000, pour: 2900 } as const;
 
 function randomAt(seed: number): number {
   const v = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
@@ -596,6 +596,82 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     bottle.position.copy(camera.position).addScaledVector(direction, -camera.position.z / direction.z);
   }
 
+  function placeBottleMouth(target: SandPoint, scale: number): void {
+    bottle.scale.setScalar(scale);
+    bottle.position.set(0, 0, 0);
+    for (let iteration = 0; iteration < 3; iteration++) {
+      bottle.updateMatrixWorld(true);
+      const mouth = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.22, 0)));
+      const center = screenPoint(bottle.position);
+      moveBottleTo(center.x + target.x - mouth.x, center.y + target.y - mouth.y);
+    }
+    bottle.updateMatrixWorld(true);
+  }
+
+  function poseAssembly(frame: HTMLElement, progress: number): FrameProjection {
+    const frameStyle = getComputedStyle(frame);
+    const sand = frame.querySelector('canvas')!;
+    const sandStyle = getComputedStyle(sand);
+    const frameWidth = parseFloat(frameStyle.width);
+    const frameHeight = parseFloat(frameStyle.height);
+    const sandWidth = parseFloat(sandStyle.width);
+    const sandHeight = parseFloat(sandStyle.height);
+    const innerX = parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.paddingLeft);
+    const innerY = parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.paddingTop);
+    const previous = new DOMMatrix(frameStyle.transform === 'none' ? undefined : frameStyle.transform);
+    const rect = frame.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+    const layoutX = rect.left - hostRect.left - previous.e - Math.min(0, previous.a * frameWidth, previous.c * frameHeight, previous.a * frameWidth + previous.c * frameHeight);
+    const layoutY = rect.top - hostRect.top - previous.f - Math.min(0, previous.b * frameWidth, previous.d * frameHeight, previous.b * frameWidth + previous.d * frameHeight);
+    const cos = Math.cos(assemblyTilt);
+    const sin = Math.sin(assemblyTilt);
+    const finalScale = Math.min(Math.min(210, height * 0.46) / (frameWidth * sin + frameHeight * cos), (width - 28) / (frameWidth * cos + frameHeight * sin));
+    const finalHeight = finalScale * (frameWidth * sin + frameHeight * cos);
+    const centerX = width / 2;
+    const centerY = 16 + finalHeight / 2;
+    const finalLip = { x: centerX + finalScale * (frameWidth * cos - frameHeight * sin) / 2, y: 16 + finalHeight };
+    const prepare = smooth(progress / 0.15);
+    const angle = assemblyTilt * smooth((progress - 0.04) / 0.11);
+    const aCos = Math.cos(angle);
+    const aSin = Math.sin(angle);
+    const scale = Math.min(THREE.MathUtils.lerp(1, finalScale, smooth(progress / 0.10)), (width - 20) / (frameWidth * aCos + frameHeight * aSin), (height - 20) / (frameWidth * aSin + frameHeight * aCos));
+    const rotatedWidth = scale * (frameWidth * aCos + frameHeight * aSin);
+    const rotatedHeight = scale * (frameWidth * aSin + frameHeight * aCos);
+    const x = THREE.MathUtils.clamp(THREE.MathUtils.lerp(layoutX + frameWidth / 2, centerX, prepare), rotatedWidth / 2 + 10, width - rotatedWidth / 2 - 10);
+    const y = THREE.MathUtils.clamp(THREE.MathUtils.lerp(layoutY + frameHeight / 2, centerY, prepare), rotatedHeight / 2 + 10, height - rotatedHeight / 2 - 10);
+    const a = scale * aCos;
+    const b = scale * aSin;
+    const c = -scale * aSin;
+    const d = scale * aCos;
+    const e = x - layoutX - (a * frameWidth + c * frameHeight) / 2;
+    const f = y - layoutY - (b * frameWidth + d * frameHeight) / 2;
+    frame.style.transformOrigin = '0 0';
+    frame.style.transform = `matrix(${a},${b},${c},${d},${e},${f})`;
+    frame.style.opacity = String(1 - smooth((progress - 0.885) / 0.06));
+    const target = { x: finalLip.x, y: finalLip.y + 26 };
+    let bottleScale = 0.48;
+    for (let iteration = 0; iteration < 2; iteration++) {
+      placeBottleMouth(target, bottleScale);
+      let baseY = target.y;
+      for (const z of [-1.04, 0, 1.04]) {
+        const base = screenPoint(bottle.localToWorld(new THREE.Vector3(0, -1.72, z)));
+        baseY = Math.max(baseY, base.y);
+      }
+      bottleScale *= Math.min(145, height * 0.32) / (baseY - target.y);
+    }
+    const enter = smooth(progress / 0.15);
+    placeBottleMouth({ x: THREE.MathUtils.lerp(width * 0.85, target.x, enter), y: THREE.MathUtils.lerp(height * 1.05, target.y, enter) }, bottleScale);
+    const dock = smooth((progress - 0.89) / 0.10);
+    bottle.position.multiplyScalar(1 - dock);
+    bottle.scale.setScalar(THREE.MathUtils.lerp(bottleScale, 1, dock));
+    return {
+      origin: { x: layoutX + a * innerX + c * innerY + e, y: layoutY + b * innerX + d * innerY + f },
+      xAxis: { x: sandWidth * a, y: sandWidth * b },
+      yAxis: { x: sandHeight * c, y: sandHeight * d },
+      lip: { x: layoutX + a * frameWidth + c * frameHeight + e, y: layoutY + b * frameWidth + d * frameHeight + f },
+    };
+  }
+
   function animateTransfer(now: number): void {
     if (!content || !transfer) return;
     const current = transfer;
@@ -609,6 +685,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     content.mantle.visible = content.cap.visible = true;
     bottle.rotation.y = current.sourceYaw;
     let flow: number;
+    let sandPlane: FrameProjection | null = null;
     if (current.kind === 'pour') {
       plinth.visible = shadow.visible = progress < 0.16;
       plinth.scale.setScalar(Math.max(0.001, 1 - smooth((progress - 0.02) / 0.14)));
@@ -631,30 +708,21 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       frame.style.transform = `translateY(${(1 - settle) * 18}px) scale(${0.77 + settle * 0.23})`;
       frame.style.opacity = String(smooth(progress / 0.16));
     } else {
-      const enter = smooth(progress / 0.14);
-      const dock = smooth((progress - 0.78) / 0.20);
-      const restingCenter = screenPoint(new THREE.Vector3(0, 0, 0));
-      moveBottleTo(THREE.MathUtils.lerp(width * (1.14 - enter * 0.36), restingCenter.x, dock), THREE.MathUtils.lerp(height * 0.46, restingCenter.y, dock));
-      bottle.scale.setScalar(THREE.MathUtils.lerp(0.43, 1, dock));
       bottle.rotation.z = 0;
-      flow = clamp((progress - 0.12) / 0.66);
-      const gather = smooth(progress / 0.18);
-      const leave = smooth((progress - 0.78) / 0.15);
-      frame.style.transformOrigin = '50% 100%';
-      frame.style.transform = `translate(${-width * 0.18 * gather}px,${leave * height * 0.2}px) scale(${1 - gather * 0.38 - leave * 0.18})`;
-      frame.style.opacity = String(1 - leave);
-      const close = smooth((progress - 0.86) / 0.13);
-      corkMesh.visible = corkBevel.visible = progress > 0.86;
+      flow = progress;
+      sandPlane = poseAssembly(frame, progress);
+      const close = smooth((progress - 0.91) / 0.08);
+      corkMesh.visible = corkBevel.visible = progress > 0.91;
       corkMesh.position.y = 2.38 + (1 - close) * 0.8;
       corkBevel.position.y = 2.595 + (1 - close) * 0.8;
-      if (progress > 0.91) {
+      if (progress > 0.94) {
         plinth.visible = shadow.visible = true;
-        plinth.scale.setScalar(smooth((progress - 0.91) / 0.08));
+        plinth.scale.setScalar(smooth((progress - 0.94) / 0.05));
       }
     }
     content.loose.transferProgress(flow);
     bottle.updateMatrixWorld(true);
-    const movingSand = current.kind === 'pour' ? progress > 0.11 : flow < 0.999;
+    const movingSand = current.kind === 'pour' ? progress > 0.11 : flow < current.plan.settledAt;
     content.mantle.visible = content.cap.visible = !movingSand;
     if (movingSand) content.reservoir.draw(current.plan, flow, current.kind === 'pour' ? smooth((progress - 0.04) / 0.25) : 0, height * renderer.getPixelRatio());
     else content.reservoir.reset();
@@ -664,7 +732,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const direction = { x: (neck.x - mouth.x) / length, y: (neck.y - mouth.y) / length };
     const hostRect = host.getBoundingClientRect();
     const sandRect = content.loose.element.querySelector('canvas')!.getBoundingClientRect();
-    if (flow > 0 && flow < 1) stream.draw(current.plan, flow, mouth, direction, { left: sandRect.left - hostRect.left, top: sandRect.top - hostRect.top, width: sandRect.width, height: sandRect.height });
+    if (flow > 0 && flow < 1) stream.draw(current.plan, flow, mouth, direction, sandPlane ?? { origin: { x: sandRect.left - hostRect.left, y: sandRect.top - hostRect.top }, xAxis: { x: sandRect.width, y: 0 }, yAxis: { x: 0, y: sandRect.height }, lip: { x: sandRect.right - hostRect.left, y: sandRect.bottom - hostRect.top } });
     else stream.clear();
   }
 

@@ -1,10 +1,9 @@
-import { sandNoise, unit, type SandTransferPlan } from './sand-motion';
+import { assemblyOutlet, projectFrame, sandNoise, type FrameProjection, type SandTransferPlan } from './sand-motion';
 
 type Point = Readonly<{ x: number; y: number }>;
-type TransferFrame = Readonly<{ left: number; top: number; width: number; height: number }>;
 export type SandStream = {
   element: HTMLCanvasElement;
-  draw(plan: SandTransferPlan, progress: number, mouth: Point, direction: Point, frame: TransferFrame): void;
+  draw(plan: SandTransferPlan, progress: number, mouth: Point, direction: Point, frame: FrameProjection): void;
   clear(): void;
   dispose(): void;
 };
@@ -52,24 +51,34 @@ export function createSandStream(host: HTMLElement): SandStream {
       context!.setTransform(ratio, 0, 0, ratio, 0, 0);
       context!.clearRect(0, 0, rect.width, rect.height);
       element.hidden = false;
-      for (let index = 0; index < plan.samples.length; index++) {
-        const route = plan.samples[index];
-        let point: Point;
-        if (plan.kind === 'pour') {
-          const t = (progress - route.mouth) / (route.land - route.mouth);
-          if (t <= 0 || t >= 1) continue;
-          const target = { x: frame.left + route.impactX * frame.width, y: frame.top + route.impactY * frame.height };
-          const spread = (sandNoise(index + 191) - 0.5) * (1.2 + t * 3);
-          const outward = { x: mouth.x + direction.x * 19, y: mouth.y + direction.y * 19 };
-          point = curve(mouth, outward, { x: target.x, y: mouth.y + Math.max(18, target.y - mouth.y) * 0.32 }, target, t);
-          point = { x: point.x + spread, y: point.y };
-        } else {
+      if (plan.kind === 'assemble') {
+        const outlet = projectFrame(frame, assemblyOutlet);
+        for (let index = 0; index < plan.samples.length; index++) {
+          const route = plan.samples[index];
           const t = (progress - route.depart) / (route.mouth - route.depart);
           if (t <= 0 || t >= 1) continue;
-          const origin = { x: frame.left + route.startX * frame.width, y: frame.top + route.startY * frame.height };
-          const outside = { x: mouth.x + direction.x * 17, y: mouth.y + direction.y * 17 };
-          point = curve(origin, { x: origin.x + (mouth.x - origin.x) * 0.35, y: origin.y - Math.min(82, rect.height * 0.19) }, outside, mouth, unit(t));
+          const overRim = Math.min(1, t / 0.22);
+          const fall = Math.max(0, (t - 0.22) / 0.78);
+          const point = t < 0.22 ? {
+            x: outlet.x + (frame.lip.x - outlet.x) * overRim,
+            y: outlet.y + (frame.lip.y - outlet.y) * overRim,
+          } : {
+            x: frame.lip.x + (mouth.x - frame.lip.x) * fall + Math.sin(fall * Math.PI) * (sandNoise(index + 191) - 0.5) * 1.4,
+            y: frame.lip.y + (mouth.y - frame.lip.y) * fall * (0.32 + 0.68 * fall),
+          };
+          grain(point, route.color, 0.72 + sandNoise(index + 933) * 0.72);
         }
+        return;
+      }
+      for (let index = 0; index < plan.samples.length; index++) {
+        const route = plan.samples[index];
+        const t = (progress - route.mouth) / (route.land - route.mouth);
+        if (t <= 0 || t >= 1) continue;
+        const target = projectFrame(frame, { x: route.impactX, y: route.impactY });
+        const spread = (sandNoise(index + 191) - 0.5) * (1.2 + t * 3);
+        const outward = { x: mouth.x + direction.x * 19, y: mouth.y + direction.y * 19 };
+        const falling = curve(mouth, outward, { x: target.x, y: mouth.y + Math.max(18, target.y - mouth.y) * 0.32 }, target, t);
+        const point = { x: falling.x + spread, y: falling.y };
         grain(point, route.color, 0.72 + sandNoise(index + 933) * 0.72);
       }
     },

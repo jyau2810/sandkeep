@@ -1,5 +1,5 @@
 import type { LooseTool } from './domain';
-import { createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
+import { assemblyPosition, createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export type LooseSand = {
   element: HTMLDivElement;
@@ -112,8 +112,8 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
       let py = grain.y;
       const size = grain.size;
       if (transfer) {
-        const route = transfer.plan.grains[i];
         if (transfer.plan.kind === 'pour') {
+          const route = transfer.plan.grains[i];
           if (transfer.progress < route.land) continue;
           const t = unit((transfer.progress - route.land) / (route.settle - route.land));
           const settle = eased(t);
@@ -122,10 +122,11 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
           px += Math.sin(t * Math.PI * 3 + sandNoise(i + 53) * 8) * 9 * t * (1 - t);
           py -= Math.sin(t * Math.PI * 2) * (1 - t) * (0.6 + sandNoise(i + 8) * 1.1);
         } else {
+          const route = transfer.plan.grains[i];
           if (transfer.progress >= route.depart) continue;
-          const t = unit((transfer.progress - route.depart + 0.035) / 0.035);
-          px += Math.sin(t * Math.PI) * (sandNoise(i + 53) - 0.5) * 3;
-          py += Math.sin(t * Math.PI) * 2;
+          const point = assemblyPosition(route, transfer.progress);
+          px = point.x * width;
+          py = point.y * height;
         }
       }
       const x = px | 0;

@@ -56,3 +56,7 @@ The accepted interactive experiment used a local illustration and approximately 
 ## Latest motion correction
 
 The user rejected the clipped photographic plug during pouring. Moving sand must leave the interior as fine grains, cross the bottle mouth, fall into the frame and spread gradually from local deposits. Assembly must also show grains entering and accumulating. This request does not reopen the accepted resting bottle material. A new motion implementation is not user-accepted merely because tests or an internal review pass.
+
+## Gravity-fed assembly requirement
+
+The user rejected upward suction during packing. The frame must lift and tilt, with grains sliding under screen gravity to its lower corner and falling into an upright bottle below. The interior fills gradually from the bottom. A tilted frame over the old upward arc still fails. This changes only assembly; the accepted resting bottle remains frozen, and the previous frame-deposition pour is preserved.
