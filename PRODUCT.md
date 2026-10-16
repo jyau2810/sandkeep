@@ -60,3 +60,8 @@ The user rejected the clipped photographic plug during pouring. Moving sand must
 ## Gravity-fed assembly requirement
 
 The user rejected upward suction during packing. The frame must lift and tilt, with grains sliding under screen gravity to its lower corner and falling into an upright bottle below. The interior fills gradually from the bottom. A tilted frame over the old upward arc still fails. This changes only assembly; the accepted resting bottle remains frozen, and the previous frame-deposition pour is preserved.
+
+
+## 装瓶连续性修正
+
+用户指出画框已经显空，瓶子仍有沙流入，并且动画中的瓶内沙质感不对。装瓶过程中需保留有面积的待倒沙堆，让画框余沙、瓶口沙流与已落定沙量共同变化。落定沙面沿用已认可瓶子的细砂材质、法线与光照，空中细沙单独运动。静止瓶子的材质、几何、镜头与灯光保持原样。

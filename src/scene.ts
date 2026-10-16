@@ -812,7 +812,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     group.add(mantle, cap);
     const looseSource = photoCanvas(source, 720, 432);
     const loose = createLooseSand(looseSource, options.reducedMotion);
-    const reservoir = createSandReservoir(looseSource, sandRadiusAt);
+    const reservoir = createSandReservoir(looseSource, sandRadiusAt, { mantle, cap, bottom: sandBase, top: fillTop });
     group.add(reservoir.object);
     looseSource.width = looseSource.height = 0;
     return { draft, loose, mantle, cap, fillPlane, reservoir, source, group };

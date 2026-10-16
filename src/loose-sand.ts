@@ -1,5 +1,5 @@
 import type { LooseTool } from './domain';
-import { assemblyPosition, createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
+import { assemblyPosition, sampleAssembly, createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export type LooseSand = {
   element: HTMLDivElement;
@@ -106,6 +106,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
 
   function paint(): void {
     pixels.set(background);
+    const assembly = transfer?.plan.kind === 'assemble' ? sampleAssembly(transfer.plan, transfer.progress) : null;
     for (let i = 0; i < grains.length; i++) {
       const grain = grains[i];
       let px = grain.x;
@@ -124,7 +125,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
         } else {
           const route = transfer.plan.grains[i];
           if (transfer.progress >= route.depart) continue;
-          const point = assemblyPosition(route, transfer.progress);
+          const point = assemblyPosition(route, assembly!);
           px = point.x * width;
           py = point.y * height;
         }
