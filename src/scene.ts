@@ -43,7 +43,7 @@ type Transfer = {
   signal?: AbortSignal;
   abort: () => void;
 };
-type Gesture = { id: number; lastX: number; lastY: number };
+type Gesture = { id: number; lastX: number; lastY: number; startY: number; tilting: boolean };
 
 const radius = 0.966;
 const bottom = -1.49;
@@ -489,7 +489,9 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   const horizontalAxis = new THREE.Vector3(0, 1, 0);
   const verticalAxis = new THREE.Vector3(1, 0, 0);
   const rotationStep = new THREE.Quaternion();
-  const bottleUp = new THREE.Vector3();
+  const inspectionCenter = new THREE.Vector3(0, (2.613 - 1.69) / 2, 0);
+  const rotatedCenter = new THREE.Vector3();
+  let returning: { from: THREE.Quaternion; started: number } | null = null;
   let gesture: Gesture | null = null;
   let width = 1;
   let height = 1;
@@ -805,7 +807,14 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const dt = previousTime ? Math.min(0.05, (now - previousTime) / 1000) : 1 / 60;
     previousTime = now;
     if (transfer) animateTransfer(now);
-    if (!transfer && !gesture && Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) {
+    if (returning) {
+      const progress = clamp((now - returning.started) / 520);
+      bottle.quaternion.copy(returning.from).slerp(new THREE.Quaternion(), smooth(progress));
+      if (progress === 1) { bottle.rotation.set(0, 0, 0); returning = null; }
+      centerInspection();
+      updateSandClip();
+    }
+    if (!returning && !transfer && !gesture && Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) {
       rotateBottle(yawVelocity * dt * 60, pitchVelocity * dt * 60);
       yawVelocity *= Math.pow(0.9, dt * 60);
       pitchVelocity *= Math.pow(0.9, dt * 60);
@@ -818,7 +827,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       options.onFault({ code: 'render-failed', message: '瓶子显示中断了，刷新页面后再试试。' });
       return;
     }
-    if (transfer || Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) requestFrame();
+    if (returning || transfer || Math.abs(yawVelocity) + Math.abs(pitchVelocity) > 0.00005) requestFrame();
   }
 
   function loadImage(source: string, signal?: AbortSignal): Promise<HTMLImageElement | null> {
@@ -883,6 +892,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   }
 
   async function show(draft: BottleDraft, next: Presentation, signal?: AbortSignal): Promise<SceneResult> {
+    returning = null;
     const operation = ++generation;
     for (const cancel of [...pendingDecodes]) cancel();
     finishTransfer('cancelled');
@@ -922,6 +932,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (transfer?.kind === kind) return transfer.promise;
     if (transfer) return Promise.resolve('cancelled');
     if (!content) return Promise.reject(new Error('请先选择一张照片。'));
+    returning = null;
     const destination: Presentation = kind === 'assemble' ? 'sealed' : 'loose';
     if (mode === destination) return Promise.resolve('completed');
     if (options.reducedMotion || document.hidden) {
@@ -965,7 +976,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
 
   function onPointerDown(event: PointerEvent): void {
     if (transfer || !content || mode !== 'sealed' || gesture || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    gesture = { id: event.pointerId, lastX: event.clientX, lastY: event.clientY };
+    returning = null;
+    gesture = { id: event.pointerId, lastX: event.clientX, lastY: event.clientY, startY: event.clientY, tilting: false };
     yawVelocity = pitchVelocity = 0;
     canvas.setPointerCapture(event.pointerId);
     canvas.style.cursor = mode === 'sealed' ? 'grabbing' : 'crosshair';
@@ -975,7 +987,16 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (!content || transfer) return;
     if (!gesture || event.pointerId !== gesture.id || mode !== 'sealed') return;
     const delta = (event.clientX - gesture.lastX) / Math.max(250, width) * Math.PI * 2;
-    const vertical = (event.clientY - gesture.lastY) / Math.max(250, height) * Math.PI * 2;
+    let verticalPixels = 0;
+    if (gesture.tilting) verticalPixels = event.clientY - gesture.lastY;
+    else {
+      const travel = event.clientY - gesture.startY;
+      if (Math.abs(travel) > 32) {
+        gesture.tilting = true;
+        verticalPixels = travel - Math.sign(travel) * 32;
+      }
+    }
+    const vertical = verticalPixels / Math.max(250, height) * Math.PI * 2;
     rotateBottle(delta, vertical);
     yawVelocity = options.reducedMotion ? 0 : delta * 0.65;
     pitchVelocity = options.reducedMotion ? 0 : vertical * 0.65;
@@ -998,10 +1019,13 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
       bottle.quaternion.premultiply(rotationStep.setFromAxisAngle(horizontalAxis, horizontal));
       bottle.quaternion.premultiply(rotationStep.setFromAxisAngle(verticalAxis, vertical)).normalize();
     }
-    bottleUp.set(0, 1, 0).applyQuaternion(bottle.quaternion);
-    const low = Math.min(-1.69 * bottleUp.y, 2.613 * bottleUp.y) - 1.038 * Math.sqrt(Math.max(0, 1 - bottleUp.y * bottleUp.y));
-    bottle.position.y = Math.abs(bottleUp.y - 1) < 1e-12 ? 0 : Math.max(0, -1.69 - low);
+    centerInspection();
     updateSandClip();
+  }
+
+  function centerInspection(): void {
+    rotatedCenter.copy(inspectionCenter).applyQuaternion(bottle.quaternion);
+    bottle.position.copy(inspectionCenter).sub(rotatedCenter);
   }
 
   function updateSandClip(): void {
@@ -1015,9 +1039,12 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   function resetView(): void {
     if (disposed || contextLost || transfer || mode !== 'sealed') return;
     yawVelocity = pitchVelocity = 0;
-    bottle.rotation.set(0, 0, 0);
-    bottle.position.set(0, 0, 0);
-    updateSandClip();
+    if (options.reducedMotion) {
+      returning = null;
+      bottle.rotation.set(0, 0, 0);
+      bottle.position.set(0, 0, 0);
+      updateSandClip();
+    } else returning = { from: bottle.quaternion.clone(), started: performance.now() };
     requestFrame();
   }
 
@@ -1070,6 +1097,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     },
     turnBy(radians: number, vertical = 0): void {
       if (disposed || contextLost || transfer || mode !== 'sealed' || !Number.isFinite(radians) || !Number.isFinite(vertical)) return;
+      returning = null;
       rotateBottle(radians, vertical);
       yawVelocity = pitchVelocity = 0;
       requestFrame();

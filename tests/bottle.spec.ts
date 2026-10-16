@@ -375,6 +375,48 @@ test('vertical and diagonal bottle drags rotate the object and Home restores its
   expect((await picture()).equals(tilted)).toBe(true);
 });
 
+test('small vertical drift preserves horizontal rotation and reset animates through intermediate poses', async ({ page }) => {
+  await page.clock.install();
+  await openDemo(page);
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const canvas = page.locator('canvas.bottle-canvas');
+  const stage = page.getByTestId('bottle-scene');
+  const picture = async () => {
+    await page.getByRole('heading', { name: '把回忆装进沙子里' }).click();
+    return canvas.screenshot();
+  };
+  const original = await picture();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Bottle is missing.');
+  const drag = async (dx: number, dy: number) => {
+    await page.mouse.move(box.x + box.width * .5, box.y + box.height * .5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * .5 + dx, box.y + box.height * .5 + dy, { steps: 8 });
+    await page.clock.runFor(16);
+    await page.mouse.up();
+  };
+  await drag(0, 24);
+  expect((await picture()).equals(original)).toBe(true);
+  await drag(90, 0);
+  await stage.press('ArrowRight'); // Stop inertia with the same deterministic step in both samples.
+  await page.clock.runFor(16);
+  const horizontal = await picture();
+  await stage.press('Home'); await page.clock.runFor(600);
+  await drag(90, 24);
+  await stage.press('ArrowRight'); await page.clock.runFor(16);
+  expect((await picture()).equals(horizontal)).toBe(true);
+  await stage.press('ArrowDown'); await page.clock.runFor(16);
+  const tilted = await picture();
+  await canvas.dblclick();
+  expect((await picture()).equals(tilted)).toBe(true);
+  await page.clock.runFor(260);
+  const midway = await picture();
+  expect(midway.equals(tilted)).toBe(false);
+  expect(midway.equals(original)).toBe(false);
+  await page.clock.runFor(320);
+  expect((await picture()).equals(original)).toBe(true);
+});
+
 test('bad and oversized uploads explain the problem and preserve the previous bottle', async ({ page }) => {
   await openDemo(page);
   const thumbnail = page.getByAltText('当前照片预览');

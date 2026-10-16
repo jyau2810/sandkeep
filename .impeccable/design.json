@@ -202,7 +202,7 @@
       {
         "name": "rotation-release",
         "value": "two-axis velocity=delta*.65; world Y/X quaternion increments; damping=pow(.9,dt*60); four arrow keys; Home/double-click reset",
-        "purpose": "Direct horizontal, vertical and diagonal bottle inspection. Reduced motion disables release inertia. World-space sand clipping follows the bottle; the initial view is preserved."
+        "purpose": "Horizontal-first inspection about a fixed bottle center without lifting. Vertical drag begins beyond32 CSS px with no threshold jump. Double-click/Home slerps back over520ms; direct manipulation and transfers interrupt it. Reduced motion returns immediately. Initial rendering remains unchanged."
       },
       {
         "name": "reduced-motion",
