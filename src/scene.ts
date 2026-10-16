@@ -549,7 +549,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   function resetTransferPose(): void {
     bottle.position.set(0, 0, 0);
     bottle.scale.setScalar(1);
-    bottle.rotation.x = bottle.rotation.z = 0;
+    bottle.rotation.set(0, 0, 0);
     corkMesh.position.y = 2.38;
     corkBevel.position.y = 2.595;
     corkMesh.visible = corkBevel.visible = true;
@@ -578,10 +578,10 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     current.signal?.removeEventListener('abort', current.abort);
     content?.loose.finishTransfer(result === 'completed');
     resetTransferPose();
-    bottle.rotation.y = current.sourceYaw;
     const destination: Presentation = current.kind === 'assemble' ? 'sealed' : 'loose';
     const source: Presentation = current.kind === 'assemble' ? 'loose' : 'sealed';
     applyPresentation(result === 'completed' ? destination : source);
+    bottle.rotation.set(0, current.sourceYaw, 0);
     current.resolve(result);
   }
 
@@ -672,6 +672,73 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     };
   }
 
+  function posePour(frame: HTMLElement, progress: number, flow: number, yaw: number): FrameProjection {
+    const frameStyle = getComputedStyle(frame);
+    const sandStyle = getComputedStyle(frame.querySelector('canvas')!);
+    const frameWidth = parseFloat(frameStyle.width);
+    const frameHeight = parseFloat(frameStyle.height);
+    const innerX = parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.paddingLeft);
+    const innerY = parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.paddingTop);
+    const previous = new DOMMatrix(frameStyle.transform === 'none' ? undefined : frameStyle.transform);
+    const rect = frame.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+    const layoutX = rect.left - hostRect.left - previous.e;
+    const layoutY = rect.top - hostRect.top - previous.f;
+    const finalScale = Math.min(280, width - 24) / frameWidth;
+    const finalHeight = frameHeight * finalScale;
+    const dock = smooth(progress / 0.16);
+    const restore = flow < 1 ? 0 : smooth((progress - 0.86) / 0.14);
+    const blend = dock * (1 - restore);
+    const scale = THREE.MathUtils.lerp(1, finalScale, blend);
+    const x = THREE.MathUtils.lerp(layoutX, (width - frameWidth * finalScale) / 2, blend);
+    const y = THREE.MathUtils.lerp(layoutY, height - 60 - finalHeight, blend);
+    const e = x - layoutX;
+    const f = y - layoutY;
+    frame.style.transformOrigin = '0 0';
+    frame.style.transform = `matrix(${scale},0,0,${scale},${e},${f})`;
+    frame.style.opacity = String(dock);
+
+    const prepare = smooth(progress / 0.29);
+    const tip = smooth((progress - 0.04) / 0.25);
+    bottle.quaternion.setFromAxisAngle(new THREE.Vector3(0, 0, 1), -Math.PI * tip)
+      .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw));
+    const uncork = smooth(progress / 0.16);
+    corkMesh.position.y = 2.38 + uncork * 0.9;
+    corkBevel.position.y = 2.595 + uncork * 0.9;
+    corkMesh.visible = corkBevel.visible = progress < 0.18;
+    const restingMouth = screenPoint(new THREE.Vector3(0, 2.22, 0));
+    const target = {
+      x: THREE.MathUtils.lerp(restingMouth.x, width / 2, prepare),
+      y: THREE.MathUtils.lerp(restingMouth.y, height - 60 - finalHeight - 38, prepare),
+    };
+    let bottleScale = THREE.MathUtils.lerp(1, 0.46, prepare) * Math.max(0.001, 1 - restore);
+    for (let iteration = 0; iteration < 4; iteration++) {
+      placeBottleMouth(target, bottleScale);
+      let fit = 1;
+      for (const part of vessel.children) {
+        if (!(part instanceof THREE.Mesh) || !part.visible) continue;
+        if (!part.geometry.boundingBox) part.geometry.computeBoundingBox();
+        const bounds = part.geometry.boundingBox!;
+        for (const px of [bounds.min.x, bounds.max.x]) for (const py of [bounds.min.y, bounds.max.y]) for (const pz of [bounds.min.z, bounds.max.z]) {
+          const point = screenPoint(part.localToWorld(new THREE.Vector3(px, py, pz)));
+          if (point.x < target.x) fit = Math.min(fit, (target.x - 12) / (target.x - point.x));
+          if (point.x > target.x) fit = Math.min(fit, (width - 12 - target.x) / (point.x - target.x));
+          if (point.y < target.y) fit = Math.min(fit, (target.y - 12) / (target.y - point.y));
+          if (point.y > target.y) fit = Math.min(fit, (height - 60 - target.y) / (point.y - target.y));
+        }
+      }
+      if (fit >= 1) break;
+      bottleScale *= fit * 0.995;
+    }
+    placeBottleMouth(target, bottleScale);
+    return {
+      origin: { x: x + scale * innerX, y: y + scale * innerY },
+      xAxis: { x: parseFloat(sandStyle.width) * scale, y: 0 },
+      yAxis: { x: 0, y: parseFloat(sandStyle.height) * scale },
+      lip: { x: x + frameWidth * scale, y: y + frameHeight * scale },
+    };
+  }
+
   function animateTransfer(now: number): void {
     if (!content || !transfer) return;
     const current = transfer;
@@ -683,31 +750,16 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     vessel.visible = true;
     plinth.visible = shadow.visible = false;
     content.mantle.visible = content.cap.visible = true;
-    bottle.rotation.y = current.sourceYaw;
     let flow: number;
-    let sandPlane: FrameProjection | null = null;
+    let sandPlane: FrameProjection;
     if (current.kind === 'pour') {
       plinth.visible = shadow.visible = progress < 0.16;
       plinth.scale.setScalar(Math.max(0.001, 1 - smooth((progress - 0.02) / 0.14)));
       shadow.material.opacity = 1 - smooth(progress / 0.16);
-      const tip = smooth((progress - 0.04) / 0.25);
-      const exit = smooth((progress - 0.86) / 0.14);
-      const restingCenter = screenPoint(new THREE.Vector3(0, 0, 0));
-      const smallX = width * (0.22 - exit * 0.6);
-      const smallY = height * (0.22 - exit * 0.15);
-      moveBottleTo(THREE.MathUtils.lerp(restingCenter.x, smallX, tip), THREE.MathUtils.lerp(restingCenter.y, smallY, tip));
-      bottle.scale.setScalar(THREE.MathUtils.lerp(1, 0.47 - exit * 0.15, tip));
-      bottle.rotation.z = -THREE.MathUtils.degToRad(115) * tip;
-      const uncork = smooth(progress / 0.16);
-      corkMesh.position.y = 2.38 + uncork * 0.9;
-      corkBevel.position.y = 2.595 + uncork * 0.9;
-      corkMesh.visible = corkBevel.visible = progress < 0.18;
       flow = clamp((progress - 0.27) / 0.59);
-      const settle = smooth((progress - 0.82) / 0.18);
-      frame.style.transformOrigin = '50% 100%';
-      frame.style.transform = `translateY(${(1 - settle) * 18}px) scale(${0.77 + settle * 0.23})`;
-      frame.style.opacity = String(smooth(progress / 0.16));
+      sandPlane = posePour(frame, progress, flow, current.sourceYaw);
     } else {
+      bottle.rotation.y = current.sourceYaw;
       bottle.rotation.z = 0;
       flow = progress;
       sandPlane = poseAssembly(frame, progress);
@@ -727,12 +779,7 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     if (movingSand) content.reservoir.draw(current.plan, flow, current.kind === 'pour' ? smooth((progress - 0.04) / 0.25) : 0, height * renderer.getPixelRatio());
     else content.reservoir.reset();
     const mouth = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.22, 0)));
-    const neck = screenPoint(bottle.localToWorld(new THREE.Vector3(0, 2.62, 0)));
-    const length = Math.hypot(neck.x - mouth.x, neck.y - mouth.y) || 1;
-    const direction = { x: (neck.x - mouth.x) / length, y: (neck.y - mouth.y) / length };
-    const hostRect = host.getBoundingClientRect();
-    const sandRect = content.loose.element.querySelector('canvas')!.getBoundingClientRect();
-    if (flow > 0 && flow < 1) stream.draw(current.plan, flow, mouth, direction, sandPlane ?? { origin: { x: sandRect.left - hostRect.left, y: sandRect.top - hostRect.top }, xAxis: { x: sandRect.width, y: 0 }, yAxis: { x: 0, y: sandRect.height }, lip: { x: sandRect.right - hostRect.left, y: sandRect.bottom - hostRect.top } });
+    if (flow > 0 && flow < 1) stream.draw(current.plan, flow, mouth, sandPlane);
     else stream.clear();
   }
 
@@ -858,9 +905,11 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
     const destination: Presentation = kind === 'assemble' ? 'sealed' : 'loose';
     if (mode === destination) return Promise.resolve('completed');
     if (options.reducedMotion || document.hidden) {
+      const sourceYaw = bottle.rotation.y;
       content.loose.beginTransfer(kind);
       content.loose.finishTransfer(true);
       applyPresentation(destination);
+      bottle.rotation.set(0, sourceYaw, 0);
       return Promise.resolve('completed');
     }
     let resolve!: (result: SceneResult) => void;

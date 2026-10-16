@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T03:32:32.612533+00:00",
+  "generatedAt": "2026-10-16T04:07:07.736093+00:00",
   "title": "Design System: 砂藏 / Sandkeep",
   "extensions": {
     "colorMeta": {
@@ -143,54 +143,12 @@
           "oklch(84% 0.0258 84.59)",
           "oklch(95% 0.0258 84.59)"
         ]
-      },
-      "tool-selected": {
-        "role": "neutral",
-        "displayName": "Selected tool sand",
-        "tonalRamp": [
-          "oklch(15% 0.0380 79.08)",
-          "oklch(26% 0.0380 79.08)",
-          "oklch(38% 0.0380 79.08)",
-          "oklch(49% 0.0380 79.08)",
-          "oklch(61% 0.0380 79.08)",
-          "oklch(72% 0.0380 79.08)",
-          "oklch(84% 0.0380 79.08)",
-          "oklch(95% 0.0380 79.08)"
-        ]
-      },
-      "tool-ink": {
-        "role": "neutral",
-        "displayName": "Selected tool ink",
-        "tonalRamp": [
-          "oklch(15% 0.0358 71.39)",
-          "oklch(26% 0.0358 71.39)",
-          "oklch(38% 0.0358 71.39)",
-          "oklch(49% 0.0358 71.39)",
-          "oklch(61% 0.0358 71.39)",
-          "oklch(72% 0.0358 71.39)",
-          "oklch(84% 0.0358 71.39)",
-          "oklch(95% 0.0358 71.39)"
-        ]
-      },
-      "tool-line": {
-        "role": "neutral",
-        "displayName": "Tool outline",
-        "tonalRamp": [
-          "oklch(15% 0.0418 77.03)",
-          "oklch(26% 0.0418 77.03)",
-          "oklch(38% 0.0418 77.03)",
-          "oklch(49% 0.0418 77.03)",
-          "oklch(61% 0.0418 77.03)",
-          "oklch(72% 0.0418 77.03)",
-          "oklch(84% 0.0418 77.03)",
-          "oklch(95% 0.0418 77.03)"
-        ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Chinese display",
-        "purpose": "Compact main headline: 36px, becoming 28px at the narrow breakpoint; bundled regular weight."
+        "purpose": "Exact headline 把回忆装进沙子里. 36px, becoming 28px at the narrow breakpoint, in the bundled regular weight."
       },
       "brand": {
         "displayName": "Serif product name",
@@ -202,11 +160,15 @@
       },
       "control": {
         "displayName": "Practical control",
-        "purpose": "12px tools and quiet actions, file limits, disclosure copy and the single local-processing footer."
+        "purpose": "12px text actions, file limits and inline saving feedback."
       },
       "primary-action": {
         "displayName": "Primary switch",
         "purpose": "14px main assembly/pour action above the art; .04em tracking."
+      },
+      "gesture": {
+        "displayName": "Stage gesture guidance",
+        "purpose": "13px muted hint with 20px line height and .04em tracking. One bottom-center location for sealed rotation and loose push."
       }
     },
     "shadows": [
@@ -225,12 +187,12 @@
       {
         "name": "control-state",
         "value": ".15s ease",
-        "purpose": "Background and border transitions on enabled primary and rotation controls, background and color on loose tools; disclosure chevron transform."
+        "purpose": "Enabled primary-action background transition."
       },
       {
         "name": "pour",
-        "value": "2900ms; real bottle tip:115deg; transient 3D grain volume; shared mouth-crossing and landing schedule",
-        "purpose": "Uncork and tip the bottle, slide interior points toward the neck, stream them through the projected mouth, then land and roll frame grains downward and outward from a growing central deposit."
+        "value": "2900ms; local picture yaw separated from stage-space tip; dock before departure; hold through final landing; narrow gravity drop",
+        "purpose": "The in-progress revision places the mouth over the receiver after any inspection yaw. Falling grains accelerate downward with small spread. Existing static materials remain protected. This source-only merge does not verify the final pose or rendered flow."
       },
       {
         "name": "assembly",
@@ -245,17 +207,12 @@
       {
         "name": "reduced-motion",
         "value": "prefers-reduced-motion: reduce",
-        "purpose": "No CSS transitions/animations or sealed release inertia. Both transfer directions reach their destination immediately. Manual loose play remains available; swirl preview is 180ms and restore is immediate."
+        "purpose": "No CSS transitions or animations and no sealed release inertia. Both transfers reach their destination immediately. Manual loose push remains available, and restore is immediate."
       },
       {
         "name": "loose-push",
         "value": "swept segment radius:28px; push=(1.7+min(1,length/14)*2.8)*falloff; linear damping:pow(.83,dt); no home spring",
         "purpose": "Persistent grooves remain after motion settles, until explicit restore. Bitmap coordinates are independent of the bottle camera."
-      },
-      {
-        "name": "loose-swirl",
-        "value": "radius:160px; omega=.080*pow(1-distance/160,.8); angular damping:pow(.86,dt); active linear damping:pow(.965,dt); preview:1100ms, reduced:180ms",
-        "purpose": "Hold to swirl at the pointer; selecting the tool previews a centered swirl. Angular motion decays after release."
       },
       {
         "name": "loose-restore",
@@ -267,7 +224,7 @@
       {
         "name": "interactive",
         "value": "outline:2px solid var(--clay);outline-offset:5px",
-        "purpose": "Buttons, links, inputs, disclosure summaries and the stage."
+        "purpose": "Buttons, links, file input and the focusable stage."
       },
       {
         "name": "stage",
@@ -278,11 +235,6 @@
         "name": "visible-upload",
         "value": "outline:2px solid var(--clay);outline-offset:3px",
         "purpose": "Visible upload label while its visually hidden file input has focus."
-      },
-      {
-        "name": "loose-tool",
-        "value": "outline:2px solid var(--clay);outline-offset:-4px",
-        "purpose": "Keep the joined push/swirl tool focus ring inside its clipped boundary."
       }
     ],
     "breakpoints": [
@@ -342,12 +294,12 @@
       {
         "name": "moving-sand-interior",
         "value": "pour: unchanged transient THREE.Points ShaderMaterial and compact shaded sprites; assembly: private MeshStandardMaterial clones sharing accepted immutable color/normal textures and side geometry; landed-volume lookup:1024 levels; temporary cap:24 rings×96 sectors; cone amplitude<=.15; radial ripple multiplier:.06; sparse airborne point limits:.45–1.2px",
-        "purpose": "Pouring retains its prior compression, gravity shift and neck-bound point paths. Assembly accumulates opaque lit fine-grain sand using actual landing times and an inner-profile volume lookup. A temporary low conical top with small ripples tapers flat near full volume. Only grains from mouth crossing until landing use small airborne points. Temporary meshes own cloned materials and cap geometry; accepted textures and side geometry remain shared and unchanged. The resting renderer is never retuned. These are authored bounds and mass events without grain collisions."
+        "purpose": "The pour keeps its temporary point volume with an independent whole-bottle tip and narrow gravity stream. Assembly accumulates opaque lit fine-grain sand using actual landing times and an inner-profile volume lookup. A temporary low conical top with small ripples tapers flat near full volume. Only grains from mouth crossing until landing use small airborne points. Temporary meshes own cloned materials and cap geometry. Accepted textures and side geometry remain shared and unchanged. The resting renderer is never retuned. These are authored bounds and mass events without grain collisions."
       },
       {
         "name": "mouth-grain-stream",
-        "value": "transparent Canvas2D overlay; DPR capped at 2; route samples from the native grain plan; affine frame origin and axes; explicit outer-rim lip; gravity fall during assembly; cubic paths during pouring; warm bodies and top-left highlights",
-        "purpose": "Pouring retains its cubic mouth-to-impact paths. Assembly starts each grain at the tilted native outlet only after its own departure, crosses the mat and wooden rim, then falls through the actual mouth below 60ms later. The outlet and mouth hold their poses during flow. Source departure, external stream, airborne interior and settled bottle volume share one event schedule, leaving only a short final flight tail after the frame drains. Stream resources clear after transfer. Paths are authored without grain collisions."
+        "value": "transparent Canvas2D overlay; DPR capped at 2; route samples from the native grain plan; affine frame origin and axes; explicit outer-rim lip; gravity fall during assembly; downward accelerating pour; warm bodies and top-left highlights",
+        "purpose": "The pour replaces target-seeking cubic paths with a narrow gravity drop beneath the mouth. Assembly starts each grain at the tilted native outlet after its own departure, crosses the mat and wooden rim, then falls through the actual mouth below 60ms later. The outlet and mouth hold their poses during assembly flow. Source departure, external stream, airborne interior and settled bottle volume share one event schedule. Stream resources clear after transfer. Paths are authored without grain collisions."
       }
     ],
     "provenance": {
@@ -371,9 +323,9 @@
       ],
       "authority": "The cat grain reference and earliest interactive demo guide loose play. Smithsonian and Petra photographs guide packed sand, filled profile and perspective. The code-led world remains direction seed 889eefe6, candidate 5, personal display plinth. User acceptance \"瓶子的效果可以了\" protects the warm sealed material, geometry, camera, glass, lighting and rotation. The user rejected the clipped sand block, upward assembly suction, then a prematurely empty frame and mismatched transient bottle sand. The current finite-bank schedule and cloned lit assembly materials address the latest feedback. These corrections are authorized but not user-accepted; an internal review does not establish that acceptance.",
       "tonalRamps": "Synthesized OKLCH display metadata with source hue/chroma; these are not additional implemented color tokens.",
-      "notCanonized": "The clipped photographic plug, broad frame reveal, upward assembly suction, prematurely collapsed source bank and sparse point-cloud appearance for settled assembly sand were rejected by the user and are not design rules. Decorative slogans, repeated instructions, stage narration and permanent save-success copy remain removed. This source-only documentation pass does not adjudicate the new correction or report render parity.",
+      "notCanonized": "The clipped photographic plug, broad frame reveal, upward assembly suction, prematurely collapsed source bank and sparse point-cloud appearance for settled assembly sand were rejected by the user and are not design rules. Rotation buttons, seam disclosure, the push/swirl switch and the footer are removed from the current interface. Decorative slogans, repeated instructions, stage narration and permanent save-success copy remain removed. The downward-pour revision has actual three-width sequential captures. Internal verification does not establish user acceptance.",
       "currentDemo": "src/main.ts uses the bundled src/assets/cat.png illustration; this source image is demonstration content, not a reusable design-system rule.",
-      "reviewEvidence": "The earlier .impeccable/review/linked-sand captures record rejected block motion. Subsequent user feedback rejects suction, premature frame emptying and the transient bottle sand material. Earlier captures and previous ship verdicts do not validate this consistency and material correction. Static renderer baselines remain 8c2d986 / 2cf32f9, with 631ad5f recording the implementation before the fine-flow correction. This pass checked source without a browser, new finish disposition or user acceptance."
+      "reviewEvidence": "This bounded merge reads src/app.ts and src/styles.css for the current controls and preserves the existing static material documentation. The frozen production build index-CwCFdUnA.js has actual captures at 1440px, 390px and 590px, including yaw variants. These captures record implementation behavior and do not imply user acceptance."
     },
     "camera": [
       {
@@ -398,28 +350,12 @@
       "css": ".ds-primary{display:flex;align-items:center;justify-content:space-between;width:168px;height:48px;padding:0 18px;background:var(--clay);color:#fff8ed;border:0;border-radius:3px;font:400 14px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.04em;cursor:pointer;transition:background .15s}.ds-primary svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-primary:not(:disabled):hover{background:var(--clay-dark)}.ds-primary:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-primary:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-primary{width:132px;padding:0 12px;font-size:14px}.ds-primary svg{width:17px;height:17px}}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none}}"
     },
     {
-      "name": "Rotation action",
-      "kind": "button",
-      "refersTo": "button-rotation",
-      "description": "Explicit accessible counterpart to horizontal bottle dragging.",
-      "html": "<button class=\"ds-rotation\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button>",
-      "css": ".ds-rotation{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:var(--ink);border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-rotation svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-rotation:not(:disabled):hover{background:#e2d7c6;border-color:#a89576}.ds-rotation:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-rotation:disabled{opacity:.48;cursor:default}@media(prefers-reduced-motion:reduce){.ds-rotation{transition:none}}"
-    },
-    {
       "name": "Text action",
       "kind": "button",
       "refersTo": "button-text",
-      "description": "Quiet reset and recovery actions.",
+      "description": "Underlined restore, reset and recovery action. Restore is left below the stage during ready loose play. Reset is right below the stage.",
       "html": "<button class=\"ds-text\" type=\"button\">换回示例</button>",
-      "css": ".ds-text{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted);cursor:pointer}.ds-text:hover{color:var(--clay)}.ds-text:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-text:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-text{font-size:12px}}"
-    },
-    {
-      "name": "Loose painting tools",
-      "kind": "button",
-      "refersTo": "loose-tool",
-      "description": "Joined push and swirl choices with explicit pressed state, plus restore; ready loose state uses the 64px band beneath the art.",
-      "html": "<div class=\"ds-loose-tools\"><div class=\"ds-loose-options\"><button type=\"button\" class=\"ds-loose-tool\" aria-pressed=\"true\">拨沙</button><button type=\"button\" class=\"ds-loose-tool\" aria-pressed=\"false\">旋涡</button></div><button type=\"button\" class=\"ds-loose-restore\">聚回照片</button></div>",
-      "css": ".ds-loose-tools{display:flex;align-items:center;justify-content:space-between;gap:18px;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-loose-options{display:flex;align-items:center;border:1px solid #b8a68c;border-radius:3px;overflow:hidden}.ds-loose-tool{min-width:72px;min-height:44px;padding:9px 18px;background:transparent;color:inherit;border:0;font:400 12px/1.7 -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;cursor:pointer;transition:background .15s,color .15s}.ds-loose-tool+.ds-loose-tool{border-left:1px solid #b8a68c}.ds-loose-tool[aria-pressed=true]{background:#e0d0b7;color:#493a28}.ds-loose-tool:not(:disabled):hover{background:#e6d9c4}.ds-loose-tool:focus-visible{outline:2px solid var(--clay);outline-offset:-4px}.ds-loose-restore{min-height:44px;padding:8px 0;background:transparent;border:0;color:var(--muted);font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;cursor:pointer}.ds-loose-restore:hover{color:var(--clay)}.ds-loose-restore:focus-visible{outline:2px solid var(--clay);outline-offset:5px}.ds-loose-tool:disabled,.ds-loose-restore:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-loose-tools{width:100%;gap:12px}.ds-loose-tool{min-width:68px;padding:9px 16px}}@media(prefers-reduced-motion:reduce){.ds-loose-tool{transition:none}}@media(max-width:370px){.ds-loose-tool{min-width:62px;padding-right:13px;padding-left:13px}}"
+      "css": ".ds-text{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted);cursor:pointer}.ds-text:not(:disabled):hover{color:var(--clay)}.ds-text:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}.ds-text:disabled{opacity:.48;cursor:default}@media(max-width:760px){.ds-text{font-size:12px}}"
     },
     {
       "name": "Photo upload route",
@@ -437,14 +373,6 @@
       "css": ".ds-brand{display:flex;align-items:center;gap:12px;color:var(--ink);text-decoration:none}.ds-brand-mark{width:25px;height:33px;color:var(--clay);fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;}.ds-brand-name{font-family:var(--serif);font-size:27px;font-weight:600;letter-spacing:.13em}.ds-brand-english{margin:4px 0 0 8px;font:600 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;letter-spacing:.18em;color:var(--muted)}.ds-brand:focus-visible{outline:2px solid var(--clay);outline-offset:5px;}@media(max-width:1100px){.ds-brand-english{display:none}}@media(max-width:760px){.ds-brand-name{font-size:25px}.ds-brand-mark{width:23px;height:30px}}"
     },
     {
-      "name": "Gallery control band",
-      "kind": "card",
-      "refersTo": "gallery-control-band",
-      "description": "The stable 64px ruled band holds rotation when sealed or loose tools when flat. It stays empty during transfers; the primary button labels progress. This preview shows the sealed variant without a live Three.js scene.",
-      "html": "<section class=\"ds-gallery\" aria-label=\"沙画工作台工具带\"><div class=\"ds-gallery-band\"><div class=\"ds-gallery-rotation\"><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向左旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m10 7-5 5 5 5M5 12h14\"/></svg></button><span>拖动旋转</span><button class=\"ds-band-turn\" type=\"button\" aria-label=\"向右旋转瓶子\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m14 7 5 5-5 5M5 12h14\"/></svg></button></div></div></section>",
-      "css": ".ds-gallery{background:var(--stage);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-gallery-band{height:64px;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 26px;padding:9px 0 10px;border-top:1px solid #d3c9b6}.ds-gallery-rotation{display:flex;align-items:center;gap:14px;flex-shrink:0;margin-inline:auto}.ds-gallery-rotation>span{font-size:12px;letter-spacing:.03em;color:var(--muted)}.ds-band-turn{width:44px;height:44px;display:grid;place-items:center;background:transparent;color:inherit;border:1px solid #c4b8a5;border-radius:50%;cursor:pointer;transition:background .15s,border-color .15s}.ds-band-turn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5}.ds-band-turn:hover{background:#e2d7c6;border-color:#a89576}.ds-band-turn:focus-visible{outline:2px solid var(--clay);outline-offset:5px}@media(max-width:760px){.ds-gallery-band{margin:0 18px;gap:12px}.ds-gallery-rotation{gap:12px}}@media(max-width:370px){.ds-gallery-band{margin:0 14px}}@media(prefers-reduced-motion:reduce){.ds-band-turn{transition:none}}"
-    },
-    {
       "name": "Flat sand picture frame",
       "kind": "custom",
       "refersTo": "sand-frame",
@@ -453,22 +381,30 @@
       "css": ".ds-sand-frame{width:min(100%,600px);padding:9px;border:6px solid #8b6d4b;background:#f3ead8;box-shadow:0 9px 18px #58432926}.ds-sand-canvas{display:block;width:100%;height:auto;aspect-ratio:5/3;touch-action:none;cursor:crosshair;image-rendering:pixelated}@media(max-width:760px){.ds-sand-frame{width:min(100%,556px);padding:7px;border-width:5px}}"
     },
     {
-      "name": "Advanced seam disclosure",
-      "kind": "input",
-      "description": "Quiet native disclosure below the art, exposing the clay-accented range only on request.",
-      "html": "<details class=\"ds-seam\"><summary>瓶身接缝<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></summary><div class=\"ds-seam-setting\"><label for=\"ds-seam-range\">用一道细沙纹连接照片两端</label><input id=\"ds-seam-range\" type=\"range\" min=\"0\" max=\"4\" step=\"0.2\" value=\"1.8\"><div class=\"ds-range-labels\"><span>无沙纹</span><span>宽一点</span></div></div></details>",
-      "css": ".ds-seam{width:300px;max-width:100%;font:400 12px -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:var(--muted)}.ds-seam summary{min-height:44px;display:flex;align-items:center;gap:10px;width:fit-content;cursor:pointer;list-style:none}.ds-seam summary::-webkit-details-marker{display:none}.ds-seam svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.5;transition:transform .15s}.ds-seam[open] svg{transform:rotate(180deg)}.ds-seam-setting{padding:5px 0 12px}.ds-seam-setting label{font-size:12px;line-height:1.8}.ds-seam-setting input{width:100%;height:44px;accent-color:var(--clay);cursor:pointer;margin:4px 0 0}.ds-range-labels{display:flex;justify-content:space-between;font-size:12px}.ds-seam summary:focus-visible,.ds-seam input:focus-visible{outline:2px solid var(--clay);outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-seam svg{transition:none}}"
+      "name": "Unified gesture hint",
+      "kind": "custom",
+      "refersTo": "gesture-hint",
+      "description": "The same bottom-center location displays 左右拖动旋转 for a sealed bottle or 拖动画面拨沙 for loose play. Hidden during busy or fatal states. This preview shows the sealed hint without a live scene.",
+      "html": "<div class=\"ds-gallery\"><div class=\"ds-scene-host\" tabindex=\"0\" role=\"img\" aria-label=\"暖调沙画瓶\" aria-describedby=\"ds-gesture-hint\" aria-keyshortcuts=\"ArrowLeft ArrowRight\"></div><p class=\"ds-gesture-hint\" id=\"ds-gesture-hint\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20\"/></svg><span>左右拖动旋转</span></p></div>",
+      "css": ".ds-gallery{background:var(--stage);position:relative;min-width:0;display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-scene-host{width:100%;height:460px;position:relative;touch-action:pan-y;cursor:grab;outline-offset:-5px;overflow:hidden}.ds-scene-host:active{cursor:grabbing}.ds-scene-host:focus-visible{outline:2px solid var(--clay);outline-offset:-5px}.ds-gesture-hint{position:absolute;left:50%;bottom:18px;z-index:4;display:flex;align-items:center;gap:9px;transform:translateX(-50%);margin:0;color:var(--muted);font-size:13px;line-height:20px;letter-spacing:.04em;white-space:nowrap;pointer-events:none}.ds-gesture-hint svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.25}@media(min-width:1600px){.ds-scene-host{height:520px}}@media(max-width:760px){.ds-scene-host{height:420px}}"
+    },
+    {
+      "name": "Workbench action row",
+      "kind": "custom",
+      "description": "Below-stage row with restore on the left during ready loose play and reset on the right. When restore is hidden, reset keeps its right alignment.",
+      "html": "<div class=\"ds-workbench-options\"><button type=\"button\" class=\"ds-text-button ds-loose-restore\">聚回照片</button><button type=\"button\" class=\"ds-text-button ds-reset-button\">换回示例</button></div>",
+      "css": ".ds-workbench-options{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;margin-top:8px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}.ds-text-button{min-height:44px;padding:8px 0;background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;text-decoration-color:#c7b49a;font-size:12px;color:var(--muted);cursor:pointer}.ds-text-button:not(:disabled):hover{color:var(--clay)}.ds-text-button:focus-visible{outline:2px solid var(--clay);outline-offset:5px}.ds-text-button:disabled{cursor:default;opacity:.48}.ds-reset-button{flex-shrink:0;margin-left:auto}.ds-loose-restore[hidden]{display:none}@media(max-width:760px){.ds-workbench-options{gap:18px}}"
     }
   ],
   "narrative": {
     "northStar": "A personal display plinth in warm daylight",
-    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with \"瓶子的效果可以了\". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.\n\nThe user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. That direction uses one route schedule across the interior, stream and flat painting. The user then rejected upward suction during assembly and requested a tilted frame pouring into a bottle below. The latest feedback rejects a frame that appears empty while the bottle continues filling, and the temporary bottle sand texture. Assembly now drains a finite source bank through the low corner on a cumulative-area schedule; its settled bottle volume uses private clones of the accepted lit fine-grain materials. Only airborne assembly grains use particles. Decorative and repeated copy remains removed. These corrections have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.",
+    "overview": "A quiet personal display plinth in warm daylight is the implementation’s working visual metaphor. Warm paper, brown ink and restrained terracotta controls frame the photograph as a small object to keep. The photograph supplies the tonal structure of the warm sand; the surrounding interface stays low in chroma.\n\nThis system records the built application. The user-provided cat grain reference and earliest interactive demo guide loose play. The Smithsonian and Petra photographs in [Visual references](docs/visual-references.md) guide packed sand, the filled profile and perspective. Direction seed (889eefe6), grounded candidate 5, remains the code-led personal display plinth. The user accepted the fine-grain bottle with \"瓶子的效果可以了\". That acceptance protects the warm sealed material, geometry, camera, glass, lighting and rotation.\n\nThe user subsequently rejected the rigid sand block disappearing during pouring and requested fine grains leaving the bottle, landing and spreading in the frame. That direction uses one route schedule across the interior, stream and flat painting. The user then rejected upward suction during assembly and requested a tilted frame pouring into a bottle below. Earlier assembly feedback rejects a frame that appears empty while the bottle continues filling, and the temporary bottle sand texture. Assembly now drains a finite source bank through the low corner on a cumulative-area schedule; its settled bottle volume uses private clones of the accepted lit fine-grain materials. Only airborne assembly grains use particles. The current interface keeps the exact headline \"把回忆装进沙子里\" and one bottom-center gesture hint. Rotation buttons, seam controls, the push/swirl switch and the footer are removed. The downward-pour pose separates photo yaw from the bottle tip, docks before grain departure and holds through the final landing. These changes have not received user acceptance, and an internal review does not establish that acceptance. The name 砂藏 / Sandkeep remains provisional. Reflective glass, textured cork, faceted packed sand and a contact shadow describe the rendering without a photorealism claim.",
     "keyCharacteristics": [
       "Warm, low-chroma interface around a photograph rendered as warm sand.",
       "Chinese serif display type paired with Chinese system sans controls.",
-      "One workbench with photo selection and the primary switch above the art, and state-specific tools below.",
+      "One workbench with photo selection and the primary switch above the art, one gesture hint inside it, and quiet restore and reset actions below.",
       "Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.",
-      "A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame. Assembly drains a finite bank from a tilted frame and accumulates lit packed sand after landings."
+      "A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame. Assembly drains a finite bank from a tilted frame. The pour holds the mouth above a narrow downward stream after any inspection yaw."
     ],
     "rules": [
       {
@@ -490,8 +426,8 @@
     "dos": [
       "Do use the existing paper, ink, muted, line, clay and stage roles instead of introducing parallel surface colors.",
       "Do preserve the bundled serif headline and system sans control relationship.",
-      "Do keep interactive targets at least the observed 44px height or diameter, with the existing clay focus treatment.",
-      "Do place photo selection and the primary switch above the art, with the relevant rotation or sand tools directly below.",
+      "Do keep interactive targets at least the observed 44px height, with the existing clay focus treatment.",
+      "Do place photo selection and the primary switch above the art, with one state-specific gesture hint inside its bottom center and quiet restore and reset actions below.",
       "Do retain one scene height through each ready and transfer state at the active breakpoint.",
       "Do preserve the finished photograph while turning the bottle and respect reduced motion.",
       "Do hold the tilted frame outlet above the actual mouth during assembly, then return the bottle to its accepted resting renderer after the last grain settles."

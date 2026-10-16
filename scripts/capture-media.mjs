@@ -32,7 +32,12 @@ try {
   const trimStartSeconds = (performance.now() - recordingStarted) / 1000;
   await page.screenshot({ path: path.join(media, '01-cover.png') });
   await page.waitForTimeout(1000);
-  await page.getByRole('button', { name: '向右旋转瓶子' }).click();
+  const firstBottle = await page.getByTestId('bottle-scene').boundingBox();
+  if (!firstBottle) throw new Error('The bottle stage is missing.');
+  await page.mouse.move(firstBottle.x + firstBottle.width * 0.4, firstBottle.y + firstBottle.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(firstBottle.x + firstBottle.width * 0.72, firstBottle.y + firstBottle.height * 0.5, { steps: 30 });
+  await page.mouse.up();
   await page.waitForTimeout(800);
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await ready(page, 'loose');
@@ -45,12 +50,7 @@ try {
   await page.mouse.move(box.x + box.width * 0.58, box.y + box.height * 0.44, { steps: 30 });
   await page.mouse.up();
   await page.waitForTimeout(800);
-  await page.getByRole('button', { name: '聚回照片', exact: true }).click();
-  await page.waitForTimeout(1100);
-  await page.getByRole('button', { name: '旋涡', exact: true }).click();
-  await page.waitForTimeout(850);
-  await page.screenshot({ path: path.join(media, '03-sand-swirl.png') });
-  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(media, '03-sand-play.png') });
   await page.getByRole('button', { name: '聚回照片', exact: true }).click();
   await page.waitForTimeout(1100);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();

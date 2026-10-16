@@ -28,9 +28,9 @@ Desktop browsers and mobile browsers. An individual competition entry links to t
 - A narrow decorative sand strip bridges the image seam.
 - Both presentation switches connect visibly through the bottle mouth. Pouring tips and uncorks the real bottle, deposits grains into the frame and empties the bottle. Assembly collects the current loose grains, streams them into the mouth, fills the bottle and closes the cork. Rotating the completed bottle does not scatter it.
 - Only the warm sand treatment is offered. Existing saved original-color records are read as warm without losing their photograph or title.
-- Disassembly shows a framed rectangular front-facing sand painting. Push and swirl leave marks until explicit restore. Loose input and rendering are isolated from the accepted bottle.
+- Disassembly shows a framed rectangular front-facing sand painting. Dragging pushes the grains and leaves marks until explicit restore. Loose input and rendering are isolated from the accepted bottle.
 - Naming is removed from the interface. Old record titles remain readable solely for storage compatibility; new drafts have an empty title.
-- A single workbench places photo selection and the primary switch above the art, with state-specific rotation or sand tools beneath it. Decorative slogans, repeated instructions, stage narration and permanent save-success text are removed. Necessary actions, errors, upload limits and one local-processing statement remain.
+- A single workbench places photo selection and the primary switch above the art. One shared hint below the art explains drag rotation or push interaction. Seam settings, visible rotation buttons, swirl choices and the local-processing footer are removed. Necessary actions, errors and upload limits remain.
 - The latest bottle is saved locally on this browser.
 - Photos are processed locally, without uploading them to a server.
 - GitHub Pages hosts a static build. The application requires no backend or account.
@@ -65,3 +65,7 @@ The user rejected upward suction during packing. The frame must lift and tilt, w
 ## 装瓶连续性修正
 
 用户指出画框已经显空，瓶子仍有沙流入，并且动画中的瓶内沙质感不对。装瓶过程中需保留有面积的待倒沙堆，让画框余沙、瓶口沙流与已落定沙量共同变化。落定沙面沿用已认可瓶子的细砂材质、法线与光照，空中细沙单独运动。静止瓶子的材质、几何、镜头与灯光保持原样。
+
+## 倒沙方向与界面精简
+
+标题为“把回忆装进沙子里”。瓶子仅通过拖动和键盘旋转。平面模式仅保留拨沙与明确复原。两个模式共用画面底部的提示样式，动画期间隐藏提示。倒出前，瓶口移到画框中央上方并朝下，细沙沿重力下落。照片的环绕角度独立于整瓶倾倒，任意旋转后倒出都保持正确方向。已认可的静止瓶子和装瓶过程保持不变。

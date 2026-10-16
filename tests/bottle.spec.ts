@@ -157,7 +157,7 @@ test('a personal photo becomes a warm bottle and survives reopening without a na
   await expect(page.locator('.header-note, .intro-copy, .stage-topline, .action-hint')).toHaveCount(0);
   await expect(page.getByText('每一粒沙，都是照片里的一点颜色。', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '照片原色', exact: true })).toHaveCount(0);
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'assembling');
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 8000 });
@@ -167,9 +167,9 @@ test('a personal photo becomes a warm bottle and survives reopening without a na
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(page.getByRole('textbox')).toHaveCount(0);
   expect(await latestBottle(page)).toMatchObject({ colorMode: 'warm', imageDataUrl: selectedPhoto });
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeHidden();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeHidden();
   await expect(thumbnail).toHaveAttribute('src', selectedPhoto!);
-  await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeVisible();
+  await expect(page.getByText('左右拖动旋转', { exact: true })).toBeVisible();
 });
 
 test('a saved original-colour bottle reopens as warm sand without losing its photo or settings', async ({ page }) => {
@@ -204,11 +204,11 @@ test('a saved original-colour bottle reopens as warm sand without losing its pho
   await expect(page.getByText('旧照片的回忆', { exact: true })).toHaveCount(0);
   await expect(page.getByAltText('当前照片预览')).toHaveAttribute('src', original.imageDataUrl);
   expect((await stablePicture(canvas)).equals(warmPicture)).toBe(true);
-  await page.getByText('瓶身接缝', { exact: true }).click();
-  await page.getByRole('slider').focus();
-  await page.keyboard.press('End');
-  await expect.poll(async () => (await latestBottle(page)).seamWidth).toBe(0.04);
-  expect(await latestBottle(page)).toEqual({ ...original, colorMode: 'warm', seamWidth: 0.04 });
+  await expect(page.getByRole('slider')).toHaveCount(0);
+  await page.getByRole('button', { name: '倒出成画', exact: true }).click();
+  await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
+  await expect.poll(async () => (await latestBottle(page)).colorMode).toBe('warm');
+  expect(await latestBottle(page)).toEqual({ ...original, colorMode: 'warm' });
 });
 
 test('flat sand keeps brush marks through resizing and restores the exact photograph', async ({ page }) => {
@@ -217,7 +217,8 @@ test('flat sand keeps brush marks through resizing and restores the exact photog
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   const canvas = page.getByTestId('loose-sand');
   await expect(canvas).toBeVisible();
-  await expect(page.getByRole('button', { name: '拨沙', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /拨沙|旋涡/ })).toHaveCount(0);
   const flat = await canvas.evaluate(node => ({
     width: (node as HTMLCanvasElement).width,
     height: (node as HTMLCanvasElement).height,
@@ -246,20 +247,12 @@ test('flat sand keeps brush marks through resizing and restores the exact photog
   expect(resizedBox.width / resizedBox.height).toBeCloseTo(5 / 3, 2);
   await page.getByRole('button', { name: '聚回照片', exact: true }).click();
   expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).toBe(initial);
-  await page.getByRole('button', { name: '旋涡', exact: true }).click();
-  await expect(page.getByRole('button', { name: '旋涡', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await stablePicture(canvas);
-  expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).not.toBe(initial);
-  await page.getByRole('button', { name: '聚回照片', exact: true }).click();
-  expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).toBe(initial);
-  await page.getByRole('button', { name: '旋涡', exact: true }).click();
-  await stablePicture(canvas);
-  expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).not.toBe(initial);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
   await expect(canvas).toBeHidden();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
-  await expect(page.getByRole('button', { name: '拨沙', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /拨沙|旋涡/ })).toHaveCount(0);
   expect(await canvas.evaluate(node => (node as HTMLCanvasElement).toDataURL())).toBe(initial);
 });
 
@@ -294,7 +287,7 @@ test('bad and oversized uploads explain the problem and preserve the previous bo
   await page.locator('#photo-input').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('a memory, not an image') });
   await expect(page.getByRole('alert')).toHaveText('请选择 JPG、PNG 或 WebP 格式的照片。');
   await expect(thumbnail).toHaveAttribute('src', originalPhoto!);
-  await expect(page.getByRole('button', { name: '向右旋转瓶子' })).toBeEnabled();
+  await expect(page.getByText('左右拖动旋转', { exact: true })).toBeVisible();
   await page.locator('#photo-input').setInputFiles({ name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(15 * 1024 * 1024 + 1) });
   await expect(page.getByRole('alert')).toHaveText('这张照片超过 15 MB，请换一张小一点的。');
   await expect(thumbnail).toHaveAttribute('src', originalPhoto!);
@@ -306,8 +299,13 @@ test('bad and oversized uploads explain the problem and preserve the previous bo
   const intact = await painting.evaluate(node => (node as HTMLCanvasElement).toDataURL());
   await page.locator('#photo-input').setInputFiles({ name: 'still-not-a-photo.txt', mimeType: 'text/plain', buffer: Buffer.from('keep the current painting') });
   await expect(page.getByRole('alert')).toHaveText('请选择 JPG、PNG 或 WebP 格式的照片。');
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
-  await page.getByRole('button', { name: '旋涡', exact: true }).click();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
+  const brushBox = await painting.boundingBox();
+  if (!brushBox) throw new Error('The painting must remain available after an invalid upload.');
+  await page.mouse.move(brushBox.x + brushBox.width * 0.3, brushBox.y + brushBox.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(brushBox.x + brushBox.width * 0.7, brushBox.y + brushBox.height * 0.5, { steps: 12 });
+  await page.mouse.up();
   await expect.poll(() => painting.evaluate(node => (node as HTMLCanvasElement).toDataURL())).not.toBe(intact);
   await page.getByRole('button', { name: '聚回照片', exact: true }).click();
   await expect.poll(() => painting.evaluate(node => (node as HTMLCanvasElement).toDataURL()), { timeout: 3000 }).toBe(intact);
@@ -346,7 +344,7 @@ test.describe('a narrow touch screen', () => {
     }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => page.evaluate((start) => scrollY > start + 30, scrollBefore)).toBe(true);
-    await page.getByRole('button', { name: '向右旋转瓶子' }).tap();
+    await expect(page.getByRole('button', { name: /向[左右]旋转瓶子/ })).toHaveCount(0);
     await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
     await session.detach();
   });
@@ -391,7 +389,7 @@ test('reduced motion still creates a bottle when browser storage is denied', asy
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed', { timeout: 1000 });
   await expect(page.getByTestId('app-status')).toHaveText('浏览器未能保存这只瓶子，你仍然可以继续玩。');
-  await expect(page.getByRole('button', { name: '向右旋转瓶子' })).toBeEnabled();
+  await expect(page.getByText('左右拖动旋转', { exact: true })).toBeVisible();
 });
 
 
@@ -404,9 +402,9 @@ test('sand pours into the frame and the tilted frame drains downward while repea
   await expect(primary).toHaveText('正在倒出…');
   await expect(primary).toBeDisabled();
   await expect(stage).toHaveAttribute('aria-busy', 'true');
-  await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeHidden();
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeHidden();
-  await expect(page.locator('#seam-width')).toBeDisabled();
+  await expect(page.getByText('左右拖动旋转', { exact: true })).toBeHidden();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeHidden();
+  await expect(page.locator('#seam-width')).toHaveCount(0);
   const emptyFrame = await flatPicture(page);
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
@@ -421,13 +419,13 @@ test('sand pours into the frame and the tilted frame drains downward while repea
   await page.clock.runFor(1150);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
   await expect(stage).toHaveAttribute('aria-busy', 'false');
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
   const fullPainting = await flatPicture(page);
   expect(fullPainting).not.toBe(halfPoured);
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await expect(primary).toHaveText('正在装瓶…');
   await expect(primary).toBeDisabled();
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeHidden();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeHidden();
   await page.keyboard.press('Enter');
   await page.clock.runFor(1300);
   await expect(stage).toHaveAttribute('data-presentation', 'assembling');
@@ -441,7 +439,7 @@ test('sand pours into the frame and the tilted frame drains downward while repea
   expect(await depositedPixels(page, emptyFrame)).toBeGreaterThan(1000);
   await page.clock.runFor(1500);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'sealed');
-  await expect(page.getByRole('group', { name: '旋转瓶子' })).toBeVisible();
+  await expect(page.getByText('左右拖动旋转', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await page.clock.runFor(3000);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
@@ -458,7 +456,7 @@ test('a new photo interrupts either direction without an old animation taking ov
   const firstPhoto = await page.getByAltText('当前照片预览').getAttribute('src');
   await page.clock.runFor(4000);
   await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
-  await expect(page.getByRole('group', { name: '平面沙画玩法' })).toBeVisible();
+  await expect(page.getByText('拖动画面拨沙', { exact: true })).toBeVisible();
   await expect(page.getByAltText('当前照片预览')).toHaveAttribute('src', firstPhoto!);
   await expect(page.locator('canvas.sand-transfer-canvas')).toBeHidden();
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
@@ -524,4 +522,62 @@ test('an unavailable WebGL context shows a recoverable explanation', async ({ pa
   await expect(page.getByRole('button', { name: '装进瓶子', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '重新尝试', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveText('这个浏览器暂时无法显示瓶子，请开启硬件加速，或换用新版浏览器。');
+});
+
+test('pouring falls below the mouth into the frame after any bottle rotation', async ({ page }) => {
+  test.setTimeout(90000);
+  let reference: { x: number; top: number; bottom: number } | null = null;
+  await page.clock.install();
+  for (const turns of [0, 2, 5]) {
+    await openDemo(page);
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
+    const stage = page.getByTestId('bottle-scene');
+    await stage.focus();
+    for (let turn = 0; turn < turns; turn++) await page.keyboard.press('ArrowRight');
+    await page.clock.runFor(100);
+    await page.getByRole('button', { name: '倒出成画', exact: true }).click();
+    await page.clock.runFor(1400);
+    const stream = await page.evaluate(() => {
+      const canvas = document.querySelector('.sand-transfer-canvas') as HTMLCanvasElement;
+      const pixels = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data;
+      let left = canvas.width, right = 0, top = canvas.height, bottom = 0, count = 0;
+      for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+        if (pixels[(y * canvas.width + x) * 4 + 3] < 100) continue;
+        left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y); count++;
+      }
+      const host = document.querySelector('.scene-host')!.getBoundingClientRect();
+      const frame = document.querySelector('.loose-sand-canvas')!.getBoundingClientRect();
+      const scale = canvas.getBoundingClientRect().width / canvas.width;
+      return { x: (left + right) * scale / 2, width: (right - left) * scale, top: top * scale, bottom: bottom * scale, count,
+        receivingX: frame.left + frame.width / 2 - host.left, receivingTop: frame.top - host.top, receivingBottom: frame.bottom - host.top };
+    });
+    expect(stream.count).toBeGreaterThan(100);
+    expect(stream.width).toBeLessThan(20);
+    expect(stream.bottom - stream.top).toBeGreaterThan(30);
+    expect(stream.top).toBeLessThan(stream.receivingTop);
+    expect(stream.bottom).toBeLessThanOrEqual(stream.receivingBottom + 3);
+    expect(Math.abs(stream.x - stream.receivingX)).toBeLessThan(12);
+    if (reference) {
+      expect(Math.abs(stream.x - reference.x)).toBeLessThan(3);
+      expect(Math.abs(stream.top - reference.top)).toBeLessThan(3);
+      expect(Math.abs(stream.bottom - reference.bottom)).toBeLessThan(3);
+    } else reference = stream;
+    await page.clock.runFor(1800);
+    await expect(page.locator('#app')).toHaveAttribute('data-phase', 'loose');
+  }
+});
+
+
+test('the quiet interface uses one shared gesture hint and only the requested controls', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openDemo(page);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('把回忆装进沙子里');
+  await expect(page.locator('.seam-details, #seam-width, .site-footer, .rotation-button, [data-tool]')).toHaveCount(0);
+  const hint = page.locator('#gesture-hint');
+  await expect(hint).toHaveText('左右拖动旋转');
+  const bottleHintStyle = await hint.evaluate(node => ({ font: getComputedStyle(node).font, color: getComputedStyle(node).color, bottom: getComputedStyle(node).bottom }));
+  await page.getByRole('button', { name: '倒出成画', exact: true }).click();
+  await expect(hint).toHaveText('拖动画面拨沙');
+  expect(await hint.evaluate(node => ({ font: getComputedStyle(node).font, color: getComputedStyle(node).color, bottom: getComputedStyle(node).bottom }))).toEqual(bottleHintStyle);
+  await expect(page.getByRole('button', { name: '聚回照片', exact: true })).toBeVisible();
 });

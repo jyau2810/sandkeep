@@ -3,14 +3,9 @@ import { assemblyOutlet, projectFrame, sandNoise, type FrameProjection, type San
 type Point = Readonly<{ x: number; y: number }>;
 export type SandStream = {
   element: HTMLCanvasElement;
-  draw(plan: SandTransferPlan, progress: number, mouth: Point, direction: Point, frame: FrameProjection): void;
+  draw(plan: SandTransferPlan, progress: number, mouth: Point, frame: FrameProjection): void;
   clear(): void;
   dispose(): void;
-};
-
-const curve = (a: Point, b: Point, c: Point, d: Point, t: number): Point => {
-  const s = 1 - t;
-  return { x: s * s * s * a.x + 3 * s * s * t * b.x + 3 * s * t * t * c.x + t * t * t * d.x, y: s * s * s * a.y + 3 * s * s * t * b.y + 3 * s * t * t * c.y + t * t * t * d.y };
 };
 
 export function createSandStream(host: HTMLElement): SandStream {
@@ -39,7 +34,7 @@ export function createSandStream(host: HTMLElement): SandStream {
 
   return {
     element,
-    draw(plan, progress, mouth, direction, frame): void {
+    draw(plan, progress, mouth, frame): void {
       const rect = host.getBoundingClientRect();
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       const nextWidth = Math.round(rect.width * ratio);
@@ -75,10 +70,7 @@ export function createSandStream(host: HTMLElement): SandStream {
         const t = (progress - route.mouth) / (route.land - route.mouth);
         if (t <= 0 || t >= 1) continue;
         const target = projectFrame(frame, { x: route.impactX, y: route.impactY });
-        const spread = (sandNoise(index + 191) - 0.5) * (1.2 + t * 3);
-        const outward = { x: mouth.x + direction.x * 19, y: mouth.y + direction.y * 19 };
-        const falling = curve(mouth, outward, { x: target.x, y: mouth.y + Math.max(18, target.y - mouth.y) * 0.32 }, target, t);
-        const point = { x: falling.x + spread, y: falling.y };
+        const point = { x: target.x, y: mouth.y + (target.y - mouth.y) * t * t };
         grain(point, route.color, 0.72 + sandNoise(index + 933) * 0.72);
       }
     },
