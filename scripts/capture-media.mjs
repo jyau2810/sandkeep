@@ -26,6 +26,7 @@ try {
   const page = await desktop.newPage();
   const recordingStarted = performance.now();
   const errors = [];
+  const marks = {};
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(url);
   await ready(page);
@@ -39,6 +40,7 @@ try {
   await page.mouse.move(firstBottle.x + firstBottle.width * 0.72, firstBottle.y + firstBottle.height * 0.5, { steps: 30 });
   await page.mouse.up();
   await page.waitForTimeout(800);
+  marks.pour = (performance.now() - recordingStarted) / 1000 - trimStartSeconds;
   await page.getByRole('button', { name: '倒出成画', exact: true }).click();
   await ready(page, 'loose');
   await page.screenshot({ path: path.join(media, '02-loose-sand.png') });
@@ -51,8 +53,9 @@ try {
   await page.mouse.up();
   await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(media, '03-sand-play.png') });
-  await page.getByRole('button', { name: '聚回照片', exact: true }).click();
+  await page.getByRole('button', { name: '复原', exact: true }).click();
   await page.waitForTimeout(1100);
+  marks.assemble = (performance.now() - recordingStarted) / 1000 - trimStartSeconds;
   await page.getByRole('button', { name: '装进瓶子', exact: true }).click();
   await ready(page);
   await page.waitForTimeout(700);
@@ -66,7 +69,7 @@ try {
   const videoPath = await page.video().path();
   await desktop.close();
   await copyFile(videoPath, path.join(scratch, 'demo.webm'));
-  await writeFile(path.join(scratch, 'capture.json'), JSON.stringify({ trimStartSeconds, url }, null, 2));
+  await writeFile(path.join(scratch, 'capture.json'), JSON.stringify({ trimStartSeconds, marks, url }, null, 2));
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const phone = await mobile.newPage();
   await phone.goto(url);

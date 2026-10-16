@@ -69,3 +69,6 @@ The user rejected upward suction during packing. The frame must lift and tilt, w
 ## 倒沙方向与界面精简
 
 标题为“把回忆装进沙子里”。瓶子仅通过拖动和键盘旋转。平面模式仅保留拨沙与明确复原。两个模式共用画面底部的提示样式，动画期间隐藏提示。倒出前，瓶口移到画框中央上方并朝下，细沙沿重力下落。照片的环绕角度独立于整瓶倾倒，任意旋转后倒出都保持正确方向。已认可的静止瓶子和装瓶过程保持不变。
+
+
+Loose-flow correction. The user rejects the continuous uniform pillar and the hint overlapping the frame. Pouring must use loose, intermittent small packets with modest lateral separation and irregular local accumulation, while retaining gravity direction and the fixed bottle pose. Static bottle rendering and reverse assembly stay frozen. Flat hint is “轻轻拨动，玩一会儿沙”, separated from the frame by at least20px at supported widths. “复原” is a secondary button next to “装进瓶子”, with a dedicated action row on narrow phones. This request supersedes the previous narrow continuous-stream assumption and needs fresh actual motion evidence.

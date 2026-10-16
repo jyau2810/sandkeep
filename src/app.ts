@@ -31,7 +31,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
         <section class="studio" aria-label="沙画工作台">
           <div class="studio-toolbar">
             <div class="photo-picker"><img class="photo-thumb" alt="当前照片预览"><label class="upload-button" for="photo-input">换张照片<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5"/></svg></label><input id="photo-input" type="file" accept="image/jpeg,image/png,image/webp" aria-label="换张照片" aria-describedby="photo-help"></div>
-            <button class="primary-button" type="button" data-action="bottle" disabled><span>装进瓶子</span>${arrowRight}</button>
+            <div class="studio-actions"><button type="button" class="secondary-button" data-action="restore" hidden>复原</button><button class="primary-button" type="button" data-action="bottle" disabled><span>装进瓶子</span>${arrowRight}</button></div>
             <span class="file-help" id="photo-help">JPG / PNG / WebP · 不超过 15 MB</span>
           </div>
           <div class="bottle-gallery">
@@ -40,7 +40,7 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
             <p class="gesture-hint" id="gesture-hint" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 8-4 4 4 4m12-8 4 4-4 4M2 12h20"/></svg><span>左右拖动旋转</span></p>
           </div>
           <div class="workbench-feedback"><div class="status-message" role="status" aria-live="polite" data-testid="app-status" hidden></div><div class="issue-message" role="alert" hidden></div></div>
-          <div class="workbench-options"><button type="button" class="text-button loose-restore" data-action="restore" hidden>聚回照片</button><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
+          <div class="workbench-options"><button class="text-button reset-button" type="button" data-action="reset">换回示例</button></div>
         </section>
       </main>
     </div>`;
@@ -98,13 +98,13 @@ export function createApp(root: HTMLElement, options: { demoUrl: string }): { st
     host.setAttribute('aria-label', phase.kind === 'pouring' ? '瓶子里的暖砂正在倒进平面画框。'
       : phase.kind === 'assembling' ? '画框里的暖砂正在装进瓶子。'
       : sealed ? '暖调沙画瓶'
-      : '带画框的平面暖调沙画。聚回照片可以复原。');
+      : '带画框的平面暖调沙画。点击复原可以恢复原画。');
     host.dataset.presentation = phase.kind === 'assembling' || phase.kind === 'pouring' ? phase.kind : sealed ? 'sealed' : 'loose';
     primary.disabled = pending || !current || fatal;
     primary.querySelector('span')!.textContent = phase.kind === 'pouring' ? '正在倒出…'
       : phase.kind === 'assembling' ? '正在装瓶…' : phase.kind === 'loading' ? '正在准备…' : sealed ? '倒出成画' : '装进瓶子';
     gestureHint.hidden = !sealedReady && !looseReady;
-    gestureHint.querySelector('span')!.textContent = sealed ? '左右拖动旋转' : '拖动画面拨沙';
+    gestureHint.querySelector('span')!.textContent = sealed ? '左右拖动旋转' : '轻轻拨动，玩一会儿沙';
     restore.hidden = !looseReady;
     restore.disabled = !looseReady;
     if (current) {

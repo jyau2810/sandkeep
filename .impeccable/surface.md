@@ -29,3 +29,6 @@ Transfer consistency correction: the user observes that the frame appears empty 
 
 
 Current refinement. The headline is 把回忆装进沙子里. Remove seam settings, the privacy/save footer, visible rotation buttons and the swirl choice. Ready states use the same unobtrusive hint at bottom center, hidden during transfer. Pouring must dock a down-facing mouth directly above the receiver before release and show a narrow accelerating downward fall. Saved picture yaw must never reverse the pour direction. Preserve accepted static bottle rendering and the accepted reverse assembly. Verify actual yaw variants, all three widths and normal-speed motion before a fresh finish review. Earlier ship verdicts do not validate this change.
+
+
+Loose-flow correction. The user rejects the continuous uniform pillar and the hint overlapping the frame. Pouring must use loose, intermittent small packets with modest lateral separation and irregular local accumulation, while retaining gravity direction and the fixed bottle pose. Static bottle rendering and reverse assembly stay frozen. Flat hint is “轻轻拨动，玩一会儿沙”, separated from the frame by at least20px at supported widths. “复原” is a secondary button next to “装进瓶子”, with a dedicated action row on narrow phones. This request supersedes the previous narrow continuous-stream assumption and needs fresh actual motion evidence.

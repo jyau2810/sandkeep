@@ -77,9 +77,14 @@ components:
   sand-frame:
     backgroundColor: "{colors.frame-mat}"
     padding: "9px"
-    width: "min(100%, 600px)"
+    width: "min(100%, 600px, calc((var(--scene-height) - 112px - var(--frame-inset)) * 5 / 3 + var(--frame-inset)))"
   bottle-gallery:
     backgroundColor: "{colors.stage}"
+  button-secondary:
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "0 18px"
+    height: "48px"
   gesture-hint:
     textColor: "{colors.muted}"
     typography: "{typography.gesture}"
@@ -106,9 +111,9 @@ The user subsequently rejected the rigid sand block disappearing during pouring 
 
 - Warm, low-chroma interface around a photograph rendered as warm sand.
 - Chinese serif display type paired with Chinese system sans controls.
-- One workbench with photo selection and the primary switch above the art, one gesture hint inside it, and quiet restore and reset actions below.
+- One workbench with photo selection and the primary switch above the art, one gesture hint inside it, restore beside the primary action, and a quiet reset below.
 - Restrained interface depth; soft lift belongs to the picture frame and material depth to the 3D object.
-- A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame. Assembly drains a finite bank from a tilted frame. The pour holds the mouth above a narrow downward stream after any inspection yaw.
+- A shared grain schedule connects the temporary bottle interior, bottle-mouth stream and local deposits in the frame. Assembly drains a finite bank from a tilted frame. The pour holds the mouth above loose intermittent downward grains after any inspection yaw.
 
 ## Colors
 
@@ -156,13 +161,13 @@ At widths up to (760px), the headline becomes (28px) with line height (1.6), and
 
 The page is centered within a maximum width of (1224px), with base horizontal padding of (48px). Its ruled header is (80px) high. The headline sits (32px) below it and (25px) above one full-width workbench. The workbench toolbar places the photo thumbnail and upload route on the left and a (168px × 48px) primary switch on the right; file guidance sits below the photo route. There is no naming field or detached creation column.
 
-The art has a stable (460px) scene host in sealed, loose, pouring and assembling states. One gesture hint sits inside the stage, centered horizontally and (18px) above its bottom edge. It reads "左右拖动旋转" for a ready sealed bottle and "拖动画面拨沙" for ready loose play. The hint is hidden during loading, transfers and fatal render failures. There is no bottom tool band.
+The art has a stable (460px) scene host in sealed, loose, pouring and assembling states. One gesture hint sits inside the stage, centered horizontally and (18px) above its bottom edge. It reads "左右拖动旋转" for a ready sealed bottle and "轻轻拨动，玩一会儿沙" for ready loose play. The hint is hidden during loading, transfers and fatal render failures. There is no bottom tool band.
 
-Below the stage, feedback appears only when needed. A separate action row follows with an (8px) top margin and (28px) gap. "聚回照片" appears on the left only in ready loose play. "换回示例" stays on the right, with automatic left margin. The seam disclosure, rotation buttons, tool switch and footer are removed. Photos still process locally. Completed assembly still saves the draft to this browser, and startup restores its latest saved bottle. Saving and storage-unavailable feedback remain inline.
+Below the stage, feedback appears only when needed. A separate action row follows with an (8px) top margin and (28px) gap. The outlined "复原" button sits beside the primary action above the stage during ready loose play. "换回示例" stays on the right, with automatic left margin. The seam disclosure, rotation buttons, tool switch and footer are removed. Photos still process locally. Completed assembly still saves the draft to this browser, and startup restores its latest saved bottle. Saving and storage-unavailable feedback remain inline.
 
-At widths from (1600px), scene and fallback heights become (520px), and the intro top margin becomes (38px). Up to (1100px), page padding becomes (35px), the headline top margin becomes (27px), and the English brand descriptor is hidden. Up to (760px), page padding becomes (22px), the header (64px), the primary-switch column (132px), and the scene host (420px) in all states. File guidance spans both toolbar columns. Up to (370px), padding becomes (16px), stage insets tighten and the upload SVG is hidden. The body minimum width is (320px).
+At widths from (1600px), scene and fallback heights become (520px), and the intro top margin becomes (38px). Up to (1100px), page padding becomes (35px), the headline top margin becomes (27px), and the English brand descriptor is hidden. Up to (760px), page padding becomes (22px), the header (64px), the primary-switch column (132px), and the scene host (420px) in all states. File guidance spans both toolbar columns. Up to (540px), the photo picker occupies the first row, guidance the second, and the right-aligned action pair the third. Up to (370px), padding becomes (16px), stage insets tighten and the upload SVG is hidden. The body minimum width is (320px).
 
-Loose play has an independent, axis-aligned layer with a fixed (720 × 432px) bitmap and displayed aspect ratio (5:3). Its frame is centered within padding (52px 26px 60px), with maximum width (600px). Up to (760px), padding becomes (52px 18px 60px), frame maximum width becomes (556px), and the action-row gap becomes (18px). Narrower than (370px), horizontal layer insets become (14px). The canvas keeps its bitmap on resize.
+Loose play has an independent, axis-aligned layer with a fixed (720 × 432px) bitmap and displayed aspect ratio (5:3). Its frame is centered within padding (52px 26px 60px), with maximum width (600px), additionally bounded by the unchanged stage height minus its (112px) vertical padding and outer frame inset. This keeps at least (22px) between the frame and gesture hint. Up to (760px), padding becomes (52px 18px 60px), the outer frame inset becomes (24px), and the action-row gap becomes (18px). Narrower than (370px), horizontal layer insets become (14px). The canvas keeps its bitmap on resize.
 
 ## Elevation & Depth
 
@@ -190,11 +195,11 @@ Controls use gently softened (3px) corners. The thumbnail is slightly tighter at
 
 The main switch is a clay control with warm light text and an inline arrow. It stays (48px) high; width changes from (168px) to (132px) on narrow screens. Enabled hover uses dark clay. Its label describes the current direction: “倒出成画” or “装进瓶子”, with progress wording while busy. Disabled controls retain their shape with opacity (.48).
 
-Text actions have a minimum height of (44px), underlined (12px) labels and clay hover. The primary action uses a short (.15s) background transition. Rotation remains available through horizontal dragging and the focused stage's arrow keys.
+Text actions have a minimum height of (44px), underlined (12px) labels and clay hover. The primary action uses a short (.15s) background transition. The secondary "复原" button has an outlined (72px × 48px) footprint, becoming at least (66px) wide on narrow screens. Its border is warm brown and hover adds a sand tint. The action pair uses a (12px) gap, becoming (10px) below (760px). Rotation remains available through horizontal dragging and the focused stage's arrow keys.
 
 ### Loose painting and frame
 
-Dragging the native canvas pushes sand directly. The push/swirl switch is removed. The underlined "聚回照片" action restores the photo explicitly from the left side of the row below the stage. It is hidden while loose play is unavailable. The reset action stays on that row's right side.
+Dragging the native canvas pushes sand directly. The push/swirl switch is removed. The outlined "复原" button restores the photo explicitly beside "装进瓶子" above the stage. It is hidden while loose play is unavailable. The reset action stays on that row's right side.
 
 The brown frame and pale mat hold the sharp native (5:3) canvas. Warm sand is the sole offered treatment. Saved original-color records normalize to warm without losing their photograph or stored seam setting. The seam setting is no longer editable in the interface. New drafts carry no title. Old titles remain readable only for storage compatibility.
 
@@ -218,7 +223,7 @@ A single home link combines an outlined bottle mark, Chinese serif name and smal
 
 The focusable sealed stage retains vertical touch scrolling (`touch-action: pan-y`). Only the loose canvas uses `touch-action: none`, direct bitmap coordinates and pointer capture. Push uses swept segments within a (28px) bitmap radius and damped motion without a home spring. The application exposes no swirl tool. Explicit restore uses per-grain delay and cubic easing over (820ms), finishing by about (980ms). The loose loop sleeps when settled.
 
-The pour keeps the existing (2900ms) duration and accepted static materials. Picture inspection yaw stays local while the whole bottle tips in stage space. The mouth docks above the receiver before the first scheduled departure and holds through the final landing. The stream accelerates downward within a narrow column, with small spread, instead of seeking a distant target along a cubic curve. The preparation pose must fit the cork and reserve the bottom gesture-hint area. The frozen production build has actual captures at 1440px, 390px and 590px, including rotated-pour samples. Internal verification does not establish user acceptance.
+The pour keeps the existing (2900ms) duration and accepted static materials. Picture inspection yaw stays local while the whole bottle tips in stage space. The mouth docks above the receiver before the first scheduled departure and holds through the final landing. Seeded unequal emission packets create real gaps in source discharge. Fixed sparse representatives accelerate downward with varied flight times, slight lateral separation and exact shared impacts. Rough arrival heights and two small asynchronous slides grow an irregular bed before the exact native picture settles. There is no frame-random deletion of airborne grains. The preparation pose must fit the cork and reserve the bottom gesture-hint area. The frozen production build has actual captures at 1440px, 390px and 590px, including rotated-pour samples. Internal verification does not establish user acceptance.
 
 Assembly lasts (4000ms). The frame starts shrinking and lifting before it rotates clockwise to (28°). Its bottom-right corner becomes the outlet above an upright bottle. The tray and mouth reach their transfer poses before grains move and hold those poses throughout flow. Actual brushed positions are clamped to the native footprint (x:1–717px, y:1–429px). A cumulative-area bank assigns each position a capacity and cross-bank position. Removing that capacity steadily moves the finite bank toward the low corner, instead of collapsing it to a thin edge before its scheduled departures. Discharge runs from (880ms) to at most (3240ms). The stream bridges the native canvas, mat and outer wooden rim, then falls (26px) from the outer corner into the projected mouth.
 
@@ -237,7 +242,7 @@ Interactive elements use a (2px) clay focus outline with (5px) offset. The stage
 - **Do** use the existing paper, ink, muted, line, clay and stage roles instead of introducing parallel surface colors.
 - **Do** preserve the bundled serif headline and system sans control relationship.
 - **Do** keep interactive targets at least the observed 44px height, with the existing clay focus treatment.
-- **Do** place photo selection and the primary switch above the art, with one state-specific gesture hint inside its bottom center and quiet restore and reset actions below.
+- **Do** place photo selection and the primary switch above the art, with one state-specific gesture hint inside its bottom center, restore next to the main switch and a quiet reset below.
 - **Do** retain one scene height through each ready and transfer state at the active breakpoint.
 - **Do** preserve the finished photograph while turning the bottle and respect reduced motion.
 - **Do** hold the tilted frame outlet above the actual mouth during assembly, then return the bottle to its accepted resting renderer after the last grain settles.

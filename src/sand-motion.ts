@@ -4,13 +4,16 @@ export type SandTransferGrain = Readonly<{
   impactX: number; impactY: number; color: number;
   depart: number; mouth: number; land: number; settle: number;
 }>;
+export type PourGrain = SandTransferGrain & Readonly<{
+  launch: number; drift: number; entry: number; rest: number; slip: number;
+}>;
 export type AssemblyGrain = SandTransferGrain & Readonly<{
   capacity: number; across: number; layer: number;
 }>;
 export type SandTransferPlan = Readonly<{
   kind: 'pour';
-  grains: readonly SandTransferGrain[];
-  samples: readonly SandTransferGrain[];
+  grains: readonly PourGrain[];
+  samples: readonly PourGrain[];
   mouthTimes: readonly number[];
   settledAt: number;
 }> | Readonly<{
@@ -108,23 +111,49 @@ function createAssemblyPlan(source: readonly GrainSource[]): AssemblyPlan {
   return { kind: 'assemble', grains: routes, samples: routes.filter((_, index) => index % 3 === 0), departureTimes: routes.map(grain => grain.depart).sort((a, b) => a - b), mouthTimes: routes.map(grain => grain.mouth).sort((a, b) => a - b), landingTimes: arrival.map(route => route.time), settledAt: 0.875 };
 }
 
+export function pourFlight(route: PourGrain, progress: number): SandPoint {
+  const t = unit(progress);
+  return { x: route.launch * (1 - t) + route.drift * t * (1 - t), y: t * (route.entry + (1 - route.entry) * t) };
+}
+
+export function pourDeposit(route: PourGrain, progress: number): SandPoint {
+  const t = unit((progress - route.land - route.rest) / (route.settle - route.land - route.rest));
+  const firstEnd = 0.25 + route.slip * 0.1;
+  const secondStart = 0.4 + route.slip * 0.12;
+  const roll = 0.35 * eased(t / firstEnd) + 0.65 * eased((t - secondStart) / (1 - secondStart));
+  return {
+    x: route.impactX + (route.homeX - route.impactX) * roll,
+    y: route.impactY + (route.homeY - route.impactY) * roll + Math.sin(t * Math.PI) * 0.002,
+  };
+}
+
 export function createTransferPlan(kind: SandTransferKind, source: readonly GrainSource[]): SandTransferPlan {
   if (kind === 'assemble') return createAssemblyPlan(source);
-  const grains = source.map((grain, index): SandTransferGrain => {
+  const grains = source.map((grain, index): PourGrain => {
     const homeX = grain.hx / 720;
     const homeY = grain.hy / 432;
-    const order = unit(((1 - homeY) + 0.84 * Math.abs(homeX - 0.5)) / 1.42 + (sandNoise(index + 51) - 0.5) * 0.018);
-    const depart = 0.015 + order * 0.61;
-    const mouth = depart + 0.095;
-    const land = mouth + 0.145;
+    const radius = Math.hypot((homeX - 0.5) * 1.5, (1 - homeY) * 0.85) / Math.hypot(0.75, 0.85);
+    const order = unit(radius + Math.sin(homeX * 17 + homeY * 9) * 0.018 + (sandNoise(index + 51) - 0.5) * 0.024);
+    const packet = Math.min(21, Math.floor(order * 22));
+    const packetWidth = 0.01 + sandNoise(packet + 113) * 0.008;
+    const mouth = 0.11 + packet * 0.027 + sandNoise(index + 317) * packetWidth;
+    const depart = mouth - 0.075 - sandNoise(index + 719) * 0.015;
+    const impactX = 0.5 + Math.sin(packet * 2.17) * 0.012 + (sandNoise(index + 79) - 0.5) * (0.035 + sandNoise(packet + 839) * 0.04);
+    const ridge = Math.sin(packet * 1.7) * 0.022 + (sandNoise(index + 131) - 0.5) * 0.024;
+    const impactY = Math.min(homeY, Math.max(0.005, 1 - order * 1.18 + ridge));
+    const land = mouth + 0.075 + Math.sqrt(impactY) * 0.055 + sandNoise(index + 419) * 0.012;
+    const rest = 0.006 + sandNoise(index + 929) * 0.013;
+    const settle = Math.min(0.99, land + rest + 0.055 + Math.abs(homeX - impactX) * 0.09 + sandNoise(index + 557) * 0.018);
     return {
       homeX, homeY, startX: grain.x / 720, startY: grain.y / 432,
-      impactX: 0.5 + (sandNoise(index + 79) - 0.5) * 0.02,
-      impactY: Math.min(homeY, unit(1 - order * 1.42 - sandNoise(index + 131) * 0.008)),
-      color: grain.color, depart, mouth, land, settle: land + 0.105,
+      impactX, impactY, color: grain.color, depart, mouth, land, settle,
+      launch: (sandNoise(index + 223) - 0.5) * 0.006,
+      drift: (sandNoise(index + 593) - 0.5) * 0.03,
+      entry: 0.08 + sandNoise(index + 647) * 0.14,
+      rest, slip: sandNoise(index + 883),
     };
   });
-  const samples = grains.filter((_, index) => index % 12 === 0);
+  const samples = grains.filter((_, index) => sandNoise(index + 1301) < 0.012);
   return { kind, grains, samples, mouthTimes: grains.map(grain => grain.mouth).sort((a, b) => a - b), settledAt: 1 };
 }
 

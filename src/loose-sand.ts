@@ -1,5 +1,5 @@
 import type { LooseTool } from './domain';
-import { assemblyPosition, sampleAssembly, createTransferPlan, eased, sandNoise, unit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
+import { assemblyPosition, sampleAssembly, createTransferPlan, pourDeposit, type SandTransferKind, type SandTransferPlan } from './sand-motion';
 
 export type LooseSand = {
   element: HTMLDivElement;
@@ -49,7 +49,7 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
   canvas.height = height;
   canvas.dataset.testid = 'loose-sand';
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', '暖调平面沙画。按住鼠标或用手指划动，可拨开细沙；旋涡工具可旋转沙粒。');
+  canvas.setAttribute('aria-label', '暖调平面沙画。按住鼠标或用手指划动，可拨开细沙。点击复原恢复原画。');
   canvas.style.touchAction = 'none';
   frame.append(canvas);
   element.append(frame);
@@ -116,12 +116,9 @@ export function createLooseSand(source: HTMLCanvasElement, reducedMotion: boolea
         if (transfer.plan.kind === 'pour') {
           const route = transfer.plan.grains[i];
           if (transfer.progress < route.land) continue;
-          const t = unit((transfer.progress - route.land) / (route.settle - route.land));
-          const settle = eased(t);
-          px = (route.impactX + (route.homeX - route.impactX) * settle) * width;
-          py = (route.impactY + (route.homeY - route.impactY) * settle) * height;
-          px += Math.sin(t * Math.PI * 3 + sandNoise(i + 53) * 8) * 9 * t * (1 - t);
-          py -= Math.sin(t * Math.PI * 2) * (1 - t) * (0.6 + sandNoise(i + 8) * 1.1);
+          const point = pourDeposit(route, transfer.progress);
+          px = point.x * width;
+          py = point.y * height;
         } else {
           const route = transfer.plan.grains[i];
           if (transfer.progress >= route.depart) continue;
