@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
-import studioUrl from './assets/studio-small-09.hdr?url';
 import type { AppIssue, BottleDraft, LooseTool, Presentation, SceneResult } from './domain';
 import { createLooseSand, type LooseSand } from './loose-sand';
 import { createSandStream } from './sand-transfer';
@@ -283,7 +281,7 @@ function packedSandMaterial(source: HTMLCanvasElement | null, draft: BottleDraft
   normalMap.anisotropy = 4;
   const material = new THREE.MeshStandardMaterial({
     map, normalMap, normalScale: new THREE.Vector2(0.9, 0.9),
-    roughness: 0.94, metalness: 0, color: 0xbebebe, envMapIntensity: 0.14,
+    roughness: 0.94, metalness: 0, color: 0xcecece, envMapIntensity: 0.14,
   });
   material.addEventListener('dispose', () => normalMap.dispose());
   return material;
@@ -310,7 +308,6 @@ function sandRadiusAt(y: number): number {
 
 function clearGlass(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
-    uniforms: { studio: { value: null }, hasStudio: { value: 0 } },
     transparent: true, depthWrite: false, side: THREE.FrontSide,
     vertexShader: `
       varying vec3 worldPosition;
@@ -323,8 +320,6 @@ function clearGlass(): THREE.ShaderMaterial {
       }
     `,
     fragmentShader: `
-      uniform sampler2D studio;
-      uniform float hasStudio;
       varying vec3 worldPosition;
       varying vec3 worldNormal;
       void main() {
@@ -333,16 +328,11 @@ function clearGlass(): THREE.ShaderMaterial {
         float facing = clamp(dot(normal, eye), 0.0, 1.0);
         float fresnel = pow(1.0 - facing, 3.2);
         float curve = pow(1.0 - facing, 1.6);
-        vec3 reflected = reflect(-eye, normal);
-        vec2 uv = vec2(atan(reflected.z, reflected.x) * 0.159154943 + 0.5, asin(clamp(reflected.y, -1.0, 1.0)) * 0.318309886 + 0.5);
-        vec3 environment = texture2D(studio, uv).rgb * hasStudio;
-        float light = dot(environment, vec3(0.2126, 0.7152, 0.0722));
-        vec3 edgeTint = vec3(0.12, 0.19, 0.16);
-        vec3 reflection = mix(edgeTint, environment, 0.67);
+        // Fixed studio tint keeps the glass contour identical from the first frame.
+        vec3 reflection = vec3(0.12, 0.19, 0.16) * 0.33;
         float pane = (1.0 - smoothstep(0.015, 0.08, abs(normal.x + 0.63))) * smoothstep(0.1, 0.3, normal.z);
         reflection = mix(reflection, vec3(1.45, 1.46, 1.4), pane * 0.9);
-        float brightReflection = smoothstep(0.7, 3.0, light) * 0.22;
-        float alpha = 0.012 + curve * 0.2 + fresnel * 0.5 + brightReflection * (0.23 + fresnel * 0.7) + pane * 0.28;
+        float alpha = 0.012 + curve * 0.2 + fresnel * 0.5 + pane * 0.28;
         gl_FragColor = vec4(reflection, clamp(alpha, 0.0, 0.8));
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -382,20 +372,8 @@ export function createBottleScene(host: HTMLElement, options: Options): BottleSc
   const retain = <T extends { dispose(): void }>(resource: T): T => { resources.add(resource); return resource; };
   const world = new THREE.Scene();
   world.background = new THREE.Color(0xece6da);
-  void new HDRLoader().loadAsync(studioUrl).then(hdr => {
-    if (disposed) { hdr.dispose(); return; }
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const environment = retain(pmrem.fromEquirectangular(hdr));
-    retain(hdr);
-    glassMaterial.uniforms.studio.value = hdr;
-    glassMaterial.uniforms.hasStudio.value = 1;
-    rimMaterial.uniforms.studio.value = hdr;
-    rimMaterial.uniforms.hasStudio.value = 1;
-    pmrem.dispose();
-    world.environment = environment.texture;
-    world.environmentIntensity = 0.5;
-    requestFrame();
-  }).catch(() => undefined);
+  // Use immediate studio lights: a late environment map used to wash out the
+  // glass and brighten the entire bottle after its first visible frame.
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40);
   camera.position.set(0, 1.2, 9.4);
   camera.lookAt(0, 0.32, 0);
